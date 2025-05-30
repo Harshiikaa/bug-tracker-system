@@ -19,40 +19,44 @@ const commentSchema = new mongoose.Schema({
 });
 
 const bugSchema = new mongoose.Schema({
-  title: { 
-    type: String, 
-    required: true, 
-    maxlength: 100 
+  title: {
+    type: String,
+    required: true,
+    maxlength: 100
   },
-  description: { 
-    type: String, 
-    required: true, 
-    maxlength: 1000 
+  description: {
+    type: String,
+    required: true,
+    maxlength: 1000
   },
-  priority: { 
-    type: String, 
-    enum: ['Low', 'Medium', 'High'], 
-    default: 'Medium' 
+  priority: {
+    type: String,
+    enum: ['Low', 'Medium', 'High'],
+    default: 'Medium'
   },
-  status: { 
-    type: String, 
-    enum: ['Open', 'In Progress', 'Closed'], 
-    default: 'Open' },
-  createdBy: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: true },
-  assignedTo: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User' },
+  status: {
+    type: String,
+    enum: ['Open', 'In Progress', 'Closed'],
+    default: 'Open'
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+    
+  },
   comments: [commentSchema],
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
+  createdAt: {
+    type: Date,
+    default: Date.now
   },
-  updatedAt: { 
-    type: Date, 
-    default: Date.now 
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
 });
 
