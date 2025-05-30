@@ -7,7 +7,7 @@ const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 router.post('/register', register);
 router.post('/login', login);
 router.get('/profile', protect, getProfile);
-router.put('/profile', protect, updateProfile);
+router.put('/profile/:id', protect, updateProfile);
 router.post('/admin/register', protect, authorizeRoles('Admin'), adminRegister);
 
 module.exports = router;

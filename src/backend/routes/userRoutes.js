@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { getAllUsers, getUserById, updateUser, deleteUser } = require('../controllers/userController');
-const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
+const { protect, authorizeRoles, isAdmin } = require('../middlewares/authMiddleware');
 
 router.get('/', protect, authorizeRoles('Admin'), getAllUsers);
 router.get('/:id', protect, authorizeRoles('Admin'), getUserById);

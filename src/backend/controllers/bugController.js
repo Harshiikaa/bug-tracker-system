@@ -4,6 +4,61 @@ const Bug = require('../models/Bug');
 const User = require('../models/User');
 const { body, param, query, validationResult } = require('express-validator');
 
+
+// Create bug
+const createBug = [
+  body('title').trim().notEmpty().withMessage('Title is required').isLength({ max: 100 }),
+  body('description').trim().notEmpty().withMessage('Description is required').isLength({ max: 1000 }),
+  body('priority').optional().isIn(['Low', 'Medium', 'High']).withMessage('Invalid priority'),
+  body('status').optional().isIn(['Open', 'In Progress', 'Closed']).withMessage('Invalid status'),
+  body('assignedTo').optional().isMongoId().withMessage('Invalid user ID'),
+  asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array().map(e => e.msg) });
+    }
+    const { title, description, priority, status, assignedTo } = req.body;
+    if (assignedTo) {
+      const user = await User.findById(assignedTo);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'Assigned user not found' });
+      }
+    }
+    const bug = new Bug({
+      title,
+      description,
+      priority: priority || 'Medium',
+      status: status || 'Open',
+      createdBy: req.user._id,
+      assignedTo
+    });
+    await bug.save();
+    await bug.populate([
+      { path: 'createdBy', select: 'name' },
+      { path: 'assignedTo', select: 'name' }
+    ]);
+    res.status(201).json({ success: true, bug });
+  })
+];
+// Get bug by ID
+const getBugById = [
+  param('id').isMongoId().withMessage('Invalid bug ID'),
+  asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array().map(e => e.msg) });
+    }
+    const bug = await Bug.findById(req.params.id).populate([
+      { path: 'createdBy', select: 'name' },
+      { path: 'assignedTo', select: 'name' }
+    ]);
+    if (!bug) {
+      return res.status(404).json({ success: false, message: 'Bug not found' });
+    }
+    res.json(bug);
+  })
+];
+
 // Get all bugs
 const getAllBugs = [
   query('page').optional().isInt({ min: 1 }).toInt(),
@@ -45,60 +100,7 @@ const getAllBugs = [
   })
 ];
 
-// Create bug
-const createBug = [
-  body('title').trim().notEmpty().withMessage('Title is required').isLength({ max: 100 }),
-  body('description').trim().notEmpty().withMessage('Description is required').isLength({ max: 1000 }),
-  body('priority').optional().isIn(['Low', 'Medium', 'High']).withMessage('Invalid priority'),
-  body('status').optional().isIn(['Open', 'In Progress', 'Closed']).withMessage('Invalid status'),
-  body('assignedTo').optional().isMongoId().withMessage('Invalid user ID'),
-  asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array().map(e => e.msg) });
-    }
-    const { title, description, priority, status, assignedTo } = req.body;
-    if (assignedTo) {
-      const user = await User.findById(assignedTo);
-      if (!user) {
-        return res.status(404).json({ success: false, message: 'Assigned user not found' });
-      }
-    }
-    const bug = new Bug({
-      title,
-      description,
-      priority: priority || 'Medium',
-      status: status || 'Open',
-      createdBy: req.user._id,
-      assignedTo
-    });
-    await bug.save();
-    await bug.populate([
-      { path: 'createdBy', select: 'name' },
-      { path: 'assignedTo', select: 'name' }
-    ]);
-    res.status(201).json({ success: true, bug });
-  })
-];
 
-// Get bug by ID
-const getBugById = [
-  param('id').isMongoId().withMessage('Invalid bug ID'),
-  asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array().map(e => e.msg) });
-    }
-    const bug = await Bug.findById(req.params.id).populate([
-      { path: 'createdBy', select: 'name' },
-      { path: 'assignedTo', select: 'name' }
-    ]);
-    if (!bug) {
-      return res.status(404).json({ success: false, message: 'Bug not found' });
-    }
-    res.json(bug);
-  })
-];
 
 // Update bug
 const updateBug = [

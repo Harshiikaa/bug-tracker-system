@@ -4,8 +4,8 @@ const router = express.Router();
 const { getAllBugs, createBug, getBugById, updateBug, deleteBug, addComment, deleteComment } = require('../controllers/bugController');
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
-router.get('/', protect, getAllBugs);
 router.post('/', protect, createBug);
+router.get('/', protect, getAllBugs);
 router.get('/:id', protect, getBugById);
 router.put('/:id', protect, updateBug);
 router.delete('/:id', protect, authorizeRoles('Admin'), deleteBug);

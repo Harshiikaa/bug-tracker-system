@@ -7,13 +7,13 @@ const bugRoutes = require('./backend/routes/bugRoutes');
 const userRoutes = require('./backend/routes/userRoutes');
 const { log } = require('./backend/utils/logger');
 const cors = require('cors');
-
 const app = express();
 const port = 3001;
 
-dotenv.config();
 
 app.use(express.json());
+
+dotenv.config();
 const corsPolicy = {
   origin: true,
   credentials: true,
