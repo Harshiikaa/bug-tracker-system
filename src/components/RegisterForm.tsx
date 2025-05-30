@@ -18,6 +18,7 @@ const RegisterForm = () => {
   });
   const [message, setMessage] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false); // New state
   const { register } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,6 +29,7 @@ const RegisterForm = () => {
     e.preventDefault();
     setMessage('');
     setError('');
+    setIsSubmitting(true); // Disable button
 
     try {
       await register(formData.name, formData.email, formData.password);
@@ -35,6 +37,8 @@ const RegisterForm = () => {
       setFormData({ name: '', email: '', password: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
+    } finally {
+      setIsSubmitting(false); // Re-enable button
     }
   };
 
@@ -86,9 +90,10 @@ const RegisterForm = () => {
         </div>
         <button
           type="submit"
-          className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          disabled={isSubmitting} // Disable if submitting
+          className={`w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          Register
+          {isSubmitting ? 'Registering...' : 'Register'}
         </button>
       </form>
       {message && <p className="mt-4 text-green-600 text-center">{message}</p>}

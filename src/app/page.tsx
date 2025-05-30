@@ -2,8 +2,6 @@
 
 import { useAuth } from "@/hooks/useAuth";
 import { useBugs } from "@/hooks/useBugs";
-// import { useBugs } from "@/hooks/usebugs";
-import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {

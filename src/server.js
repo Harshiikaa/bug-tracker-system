@@ -1,15 +1,27 @@
 // src/server.js
 const express = require('express');
 const connectDB = require('./config/db');
+const dotenv = require("dotenv");
 const authRoutes = require('./backend/routes/authRoutes');
 const bugRoutes = require('./backend/routes/bugRoutes');
 const userRoutes = require('./backend/routes/userRoutes');
 const { log } = require('./backend/utils/logger');
+const cors = require('cors');
+
 const app = express();
 const port = 3001;
 
-app.use(express.json());
+dotenv.config();
 
+app.use(express.json());
+const corsPolicy = {
+  origin: true,
+  credentials: true,
+  optionSuccessStatus: 200
+
+}
+app.use(cors(corsPolicy))
+// app.use(cors());
 connectDB();
 
 app.use('/api/auth', authRoutes);
