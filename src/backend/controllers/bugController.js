@@ -11,20 +11,29 @@ const createBug = [
     .notEmpty()
     .withMessage("Title is required")
     .isLength({ max: 100 }),
+
   body("description")
     .trim()
     .notEmpty()
     .withMessage("Description is required")
     .isLength({ max: 1000 }),
+
   body("priority")
     .optional()
     .isIn(["Low", "Medium", "High"])
     .withMessage("Invalid priority"),
+
+  // `status` will be overridden to 'Open' anyway, but let's validate
   body("status")
     .optional()
     .isIn(["Open", "In Progress", "Closed"])
     .withMessage("Invalid status"),
-  body("assignedTo").optional().isMongoId().withMessage("Invalid user ID"),
+
+  body("assignedTo")
+    .optional({ checkFalsy: true }) // skip if null/empty/undefined
+    .isMongoId()
+    .withMessage("Invalid user ID"),
+
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -32,32 +41,123 @@ const createBug = [
         .status(400)
         .json({ success: false, errors: errors.array().map((e) => e.msg) });
     }
-    const { title, description, priority, status, assignedTo } = req.body;
+
+    const { title, description, priority } = req.body;
+    let { assignedTo } = req.body;
+
+    // Only allow Admins to assign a bug
     if (assignedTo) {
-      const user = await User.findById(assignedTo);
-      if (!user) {
+      if (req.user.role !== "Admin") {
         return res
-          .status(404)
-          .json({ success: false, message: "Assigned user not found" });
+          .status(403)
+          .json({ success: false, message: "Only admins can assign bugs" });
       }
+
+      const assignedUser = await User.findById(assignedTo);
+      if (!assignedUser || assignedUser.role !== "User") {
+        return res.status(400).json({
+          success: false,
+          message: "Assigned user must be a Developer",
+        });
+      }
+    } else {
+      assignedTo = null; // default to null if not provided
     }
+
     const bug = new Bug({
       title,
       description,
       priority: priority || "Medium",
-      status: status || "Open",
+      status: "Open", // always default status
       createdBy: req.user._id,
       assignedTo,
     });
+
     await bug.save();
     await bug.populate([
       { path: "createdBy", select: "name" },
       { path: "assignedTo", select: "name" },
     ]);
+
     res.status(201).json({ success: true, bug });
   }),
 ];
+
+// const createBug = [
+//   body("title")
+//     .trim()
+//     .notEmpty()
+//     .withMessage("Title is required")
+//     .isLength({ max: 100 }),
+//   body("description")
+//     .trim()
+//     .notEmpty()
+//     .withMessage("Description is required")
+//     .isLength({ max: 1000 }),
+//   body("priority")
+//     .optional()
+//     .isIn(["Low", "Medium", "High"])
+//     .withMessage("Invalid priority"),
+//   body("status")
+//     .optional()
+//     .isIn(["Open", "In Progress", "Closed"])
+//     .withMessage("Invalid status"),
+//   body("assignedTo")
+//     .optional({ checkFalsy: true }) // This will skip empty string/null
+//     .isMongoId()
+//     .withMessage("Invalid user ID"),
+//   asyncHandler(async (req, res) => {
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       return res
+//         .status(400)
+//         .json({ success: false, errors: errors.array().map((e) => e.msg) });
+//     }
+//     const { title, description, priority, status, assignedTo } = req.body;
+//     // if (assignedTo) {
+//     //   const user = await User.findById(assignedTo);
+//     //   if (!user) {
+//     //     return res
+//     //       .status(404)
+//     //       .json({ success: false, message: "Assigned user not found" });
+//     //   }
+//     // }
+//     if (assignedTo) {
+//       // Only Admins can assign bugs
+//       if (req.user.role !== "Admin") {
+//         return res.status(403).json({
+//           success: false,
+//           message: "Only admins can assign bugs to others",
+//         });
+//       }
+
+//       const user = await User.findById(assignedTo);
+//       if (!user) {
+//         return res.status(404).json({
+//           success: false,
+//           message: "Assigned user not found",
+//         });
+//       }
+//     }
+
+//     const bug = new Bug({
+//       title,
+//       description,
+//       priority: priority || "Medium",
+//       status: status || "Open",
+//       createdBy: req.user._id,
+//       assignedTo,
+//     });
+//     await bug.save();
+//     await bug.populate([
+//       { path: "createdBy", select: "name" },
+//       { path: "assignedTo", select: "name" },
+//     ]);
+//     res.status(201).json({ success: true, bug });
+//   }),
+// ];
 // Get bug by ID
+
 const getBugById = [
   param("id").isMongoId().withMessage("Invalid bug ID"),
   asyncHandler(async (req, res) => {
