@@ -178,6 +178,38 @@ const getBugById = [
   }),
 ];
 
+// GET bugs
+// const getBugs = async (req, res) => {
+//   try {
+//     const user = req.user;
+//     let bugs;
+
+//     if (user.role === "Admin") {
+//       bugs = await Bug.find().populate("createdBy assignedTo");
+//     } else if (user.role === "Tester") {
+//       bugs = await Bug.find({ createdBy: user._id }).populate("assignedTo");
+//     } else if (user.role === "Developer") {
+//       bugs = await Bug.find({ assignedTo: user._id }).populate("createdBy");
+//     } else {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Access denied: Unauthorized role",
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       data: bugs,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//       error: error.message,
+//     });
+//   }
+// };
+
 // Get all bugs
 const getAllBugs = [
   query("page").optional().isInt({ min: 1 }).toInt(),
@@ -382,6 +414,7 @@ module.exports = {
   getAllBugs,
   createBug,
   getBugById,
+  getBugs,
   updateBug,
   deleteBug,
   addComment,

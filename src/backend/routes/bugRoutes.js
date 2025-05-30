@@ -6,6 +6,8 @@ const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
 
 router.post('/', protect,authorizeRoles('Tester'), createBug);
 router.get('/', protect, getAllBugs);
+router.get('/', protect, getBugs);
+
 router.get('/:id', protect, getBugById);
 router.put('/:id', protect,authorizeRoles('Tester','Admin'), updateBug);
 router.delete('/:id', protect, authorizeRoles('Admin'), deleteBug);
