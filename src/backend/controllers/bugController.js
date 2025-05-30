@@ -100,8 +100,6 @@ const getAllBugs = [
   })
 ];
 
-
-
 // Update bug
 const updateBug = [
   param('id').isMongoId().withMessage('Invalid bug ID'),

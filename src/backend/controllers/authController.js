@@ -6,30 +6,7 @@ const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 
 // Register User
-// const register = [
-//     body('name').trim().notEmpty().withMessage('Name is required'),
-//     body('email').isEmail().withMessage('Invalid email format'),
-//     body('password').isLength({ min: 6 }).withMessage('Password too short'),
-//     body('role').optional().isIn(['User', 'Tester']).withMessage('Invalid role'),
-//     asyncHandler(async (req, res) => {
-//         const errors = validationResult(req);
-//         if (!errors.isEmpty()) {
-//             return res.status(400).json({ success: false, errors: errors.array().map(e => e.msg) });
-//         }
-//         const { name, email, password, role } = req.body;
-//         const existingUser = await User.findOne({ email });
-//         if (existingUser) {
-//             return res.status(400).json({ success: false, message: 'Email already exists' });
-//         }
-//         const user = new User({ name, email, password, role: role || 'User' });
-//         await user.save();
-//         res.status(201).json({
-//             success: true,
-//             message: 'User registered successfully',
-//             user: { id: user._id, name: user.name, email: user.email, role: user.role }
-//         });
-//     })
-// ];
+
 
 const register = [
     body('name').trim().notEmpty().withMessage('Name is required'),
