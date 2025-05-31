@@ -1,7 +1,11 @@
+
+
+
 'use client';
 
 import ProtectedAuth from "@/components/ProtectedAuth";
 import { useBugs } from "@/hooks/useBugs";
+import { useUsers } from "@/hooks/useUsers";
 import { useEffect, useState } from "react";
 
 export default function AdminDashboard() {
@@ -9,7 +13,31 @@ export default function AdminDashboard() {
   const { getAllBugs } = useBugs(token);
      const [bugs, setBugs] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+  const [loadingDevelopers, setLoadingDevelopers] = useState(false); 
+  const [developers, setDevelopers] = useState([]); 
+  const { getDevelopers } = useUsers(token); 
+
+
+
+  // Fetch developers (Creating infinite loop)
+  useEffect(() => {
+    const fetchDevelopers = async () => {
+      setLoadingDevelopers(true);
+      try {
+        const developersData = await getDevelopers();
+        console.log("👨‍💻 Developers data:", developersData);
+        setDevelopers(developersData || []); 
+      } catch (error) {
+        console.error("❌ Error fetching developers:", error);
+        setDevelopers([]);
+      } finally {
+        setLoadingDevelopers(false);
+      }
+    };
+
+    fetchDevelopers();
+  }, [getDevelopers]);
+
   useEffect(() => {
     const fetchBugs = async () => {
       setLoading(true); 
@@ -32,10 +60,7 @@ export default function AdminDashboard() {
     fetchBugs();
   }, [getAllBugs]); 
 
-  //  useEffect(() => {
-  //   getAllBugs("page=1&limit=10"); // Customize as needed
-  // }, []);
-  
+
   return (
      <ProtectedAuth allowedRoles={["Admin"]}>
        <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -55,6 +80,8 @@ export default function AdminDashboard() {
       <th className="p-4">Priority</th>
       <th className="p-4">Created By</th>
       <th className="p-4 rounded-tr-xl">Assigned To</th>
+          <th className="p-4 rounded-tr-xl">Actions</th> 
+
     </tr>
   </thead>
   <tbody>
@@ -92,6 +119,14 @@ export default function AdminDashboard() {
         </td>
         <td className="p-4 text-gray-600">{bug.createdBy?.name || 'Unknown'}</td>
         <td className="p-4 text-gray-600">{bug.assignedTo?.name || 'Unassigned'}</td>
+        <td className="p-4">
+        <button
+          onClick={() => console.log('Edit bug:', bug._id)}
+          className="text-blue-600 hover:underline"
+        >
+          Edit
+        </button>
+      </td>
       </tr>
     ))}
   </tbody>
@@ -105,3 +140,4 @@ export default function AdminDashboard() {
    
   );
 }
+

@@ -118,6 +118,18 @@ export function useBugs(token: string | null) {
   // };
 
   // Update bug
+  
+  
+  const getBugsForDashboard = async () => {
+const response = await fetch(`${API_URL.replace(/\/$/, '')}/dashboard`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.json();
+  };
+
+  
   const updateBug = async (id: string, updates: any) => {
     setLoading(true);
     try {
@@ -188,12 +200,11 @@ export function useBugs(token: string | null) {
   };
 
   return {
-    bugs,
-    bug,
-    loading,
+  
     createBug,
     getAllBugs,
     getBugById,
+    getBugsForDashboard,
     updateBug,
     deleteBug,
     addComment,

@@ -216,7 +216,6 @@ const createBug = [
 //   }),
 // ];
 
-
 // Get bug by ID
 // const getBugById = [
 //   param("id").isMongoId().withMessage("Invalid bug ID"),
@@ -258,15 +257,38 @@ const getBugById = [
     ]);
 
     if (!bug) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Bug not found or unauthorized access" });
+      return res.status(404).json({
+        success: false,
+        message: "Bug not found or unauthorized access",
+      });
     }
 
     res.json({ success: true, data: bug });
   }),
 ];
 
+const getBugsForDashboard = [
+  asyncHandler(async (req, res) => {
+    if (!req.user || !req.user._id) {
+      res.status(401);
+      throw new Error("Unauthorized: User not authenticated");
+    }
+
+    const userId = req.user._id;
+
+    const bugs = await Bug.find({
+      $or: [
+        { createdBy: userId }, // Bugs created by the user (tester)
+        { assignedTo: userId }, // Bugs assigned to the user (developer)
+      ],
+    }).populate([
+      { path: "createdBy", select: "name" },
+      { path: "assignedTo", select: "name" },
+    ]);
+
+    res.json({ success: true, data: bugs });
+  }),
+];
 
 // GET bugs by owner (Tester) and assignedDevelopers
 const getBugs = [
@@ -505,6 +527,7 @@ module.exports = {
   createBug,
   getAllBugs,
   getBugById,
+  getBugsForDashboard,
   getBugs,
   updateBug,
   deleteBug,

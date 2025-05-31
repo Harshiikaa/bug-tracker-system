@@ -10,6 +10,7 @@ const {
   addComment,
   deleteComment,
   getBugs,
+  getBugsForDashboard,
 } = require("../controllers/bugController");
 const { protect, authorizeRoles } = require("../middlewares/authMiddleware");
 
@@ -17,6 +18,7 @@ router.post("/", protect, authorizeRoles("Tester"), createBug);
 router.get("/my-bugs", protect, authorizeRoles("Tester", "User"), getBugs); // for testers/devs
 router.get("/", protect, authorizeRoles("Admin"), getAllBugs); // only for admin
 router.get("/:id", protect, getBugById);
+router.get('/dashboard', protect, getBugsForDashboard);
 router.put("/:id", protect, authorizeRoles("Tester", "Admin"), updateBug);
 router.delete("/:id", protect, authorizeRoles("Admin"), deleteBug);
 router.post("/:id/comments", protect, addComment);
