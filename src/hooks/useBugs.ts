@@ -1,10 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+type Bug = {
+  _id: string;
+  title: string;
+  description: string;
+  status?: string;
+  priority?: string;
+  createdBy?: { name: string };
+  assignedTo?: { name: string };
+};
 
+type BugResponse = {
+  bugs: Bug[];
+  pagination: {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    itemsPerPage: number;
+  };
+};
 const API_URL = 'http://localhost:3001/api/bugs';
 
 export function useBugs(token: string | null) {
+    // const finalToken = token || (typeof window !== "undefined" ? localStorage.getItem("authToken") : null);
   const [bugs, setBugs] = useState<any[]>([]);
   const [bug, setBug] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -39,21 +58,29 @@ export function useBugs(token: string | null) {
   };
 
   // Get all bugs
-  const getAllBugs = async (queryParams = '') => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}?${queryParams}`, { headers });
-      const data = await res.json();
-      if (data.bugs) setBugs(data.bugs);
-      return data;
-    } catch (err) {
-      console.error('Get all bugs error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const getAllBugs = useCallback(
+    async (queryParams = '') => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_URL}?${queryParams}`, { headers });
+        const data = await res.json();
+        console.log('🐞 Get all bugs response:', data); // Debug log
+        if (data.bugs) {
+          setBugs(data.bugs); // Update bugs state
+        } else {
+          setBugs([]); // Empty array if no bugs
+        }
+        return data; // Return data for external use (e.g., pagination)
+      } catch (err) {
+        console.error('Get all bugs error:', err);
+        setBugs([]); // Set empty on error
+      } finally {
+        setLoading(false);
+      }
+    },
+    [token] // Depend on token directly instead of headers
+  );
 
-  // Get bug by ID
   const getBugById = async (id: string) => {
     setLoading(true);
     try {
