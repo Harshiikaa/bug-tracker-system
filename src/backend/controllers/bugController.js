@@ -215,8 +215,28 @@ const createBug = [
 //     res.status(201).json({ success: true, bug });
 //   }),
 // ];
-// Get bug by ID
 
+
+// Get bug by ID
+// const getBugById = [
+//   param("id").isMongoId().withMessage("Invalid bug ID"),
+//   asyncHandler(async (req, res) => {
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       return res
+//         .status(400)
+//         .json({ success: false, errors: errors.array().map((e) => e.msg) });
+//     }
+//     const bug = await Bug.findById(req.params.id).populate([
+//       { path: "createdBy", select: "name" },
+//       { path: "assignedTo", select: "name" },
+//     ]);
+//     if (!bug) {
+//       return res.status(404).json({ success: false, message: "Bug not found" });
+//     }
+//     res.json(bug);
+//   }),
+// ];
 const getBugById = [
   param("id").isMongoId().withMessage("Invalid bug ID"),
   asyncHandler(async (req, res) => {
@@ -226,16 +246,27 @@ const getBugById = [
         .status(400)
         .json({ success: false, errors: errors.array().map((e) => e.msg) });
     }
-    const bug = await Bug.findById(req.params.id).populate([
+
+    const userId = req.user._id; // assuming authentication middleware sets req.user
+
+    const bug = await Bug.findOne({
+      _id: req.params.id,
+      createdBy: userId, // restrict to bugs created by this user
+    }).populate([
       { path: "createdBy", select: "name" },
       { path: "assignedTo", select: "name" },
     ]);
+
     if (!bug) {
-      return res.status(404).json({ success: false, message: "Bug not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Bug not found or unauthorized access" });
     }
-    res.json(bug);
+
+    res.json({ success: true, data: bug });
   }),
 ];
+
 
 // GET bugs by owner (Tester) and assignedDevelopers
 const getBugs = [

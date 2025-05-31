@@ -5,12 +5,16 @@ import { useParams } from 'next/navigation';
 import ProtectedAuth from '@/components/ProtectedAuth';
 import { useAuth } from '@/hooks/useAuth';
 import { useBugs } from '@/hooks/useBugs';
-// import { Bug } from '@/types/Bug';
+import { Bug } from '@/types/Bug';
 
 export default function TesterDashboard() {
   const { token } = useAuth();
   const { createBug, getBugById } = useBugs(token);
-  const params = useParams();
+ const params = useParams();
+
+  useEffect(() => {
+    console.log('Params:', params);
+  }, [params]);
   const bugId = params.id as string;
   const [bug, setBug] = useState<Bug | null>(null);
   const [loading, setLoading] = useState(false);
@@ -61,40 +65,39 @@ export default function TesterDashboard() {
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setMessage('');
+  setError(null);
+  setIsSubmitting(true);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage('');
-    setError(null);
-    setIsSubmitting(true);
+  try {
+    const response = await createBug({
+      title: formData.title,
+      description: formData.description,
+      priority: formData.priority,
+    });
 
-    try {
-      const response = await createBug({
-        ...formData,
-        status: 'Open',
-        assignedTo: '',
+    if (response.success) {
+      setMessage('Bug created successfully!');
+      setFormData({
+        title: '',
+        description: '',
+        priority: 'Medium',
       });
-
-      if (response.success) {
-        setMessage('Bug created successfully!');
-        setFormData({
-          title: '',
-          description: '',
-          priority: 'Medium',
-        });
-        // If the created bug's ID is returned, fetch it
-        if (response.data?._id) {
-          fetchBug(response.data._id);
-        }
-      } else {
-        setError(response.message || 'Bug creation failed');
+      // If the created bug's ID is returned, fetch it
+      if (response.data?._id) {
+        fetchBug(response.data._id);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Bug creation failed');
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      setError(response.message || 'Bug creation failed');
     }
-  };
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Bug creation failed');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <ProtectedAuth allowedRoles={['Tester']}>
