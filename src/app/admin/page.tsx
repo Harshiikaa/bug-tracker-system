@@ -12,25 +12,25 @@ export default function AdminDashboard() {
   
   useEffect(() => {
     const fetchBugs = async () => {
-      setLoading(true); // Loading start
+      setLoading(true); 
       try {
-        const response = await getAllBugs("page=1&limit=10"); // API call
-        console.log("🐞 Bugs response:", response); // Debug log
+        const response = await getAllBugs("page=1&limit=10"); 
+        console.log("🐞 Bugs response:", response); 
         if (response && response.bugs) {
-          setBugs(response.bugs); // Bugs state update
+          setBugs(response.bugs); 
         } else {
-          setBugs([]); // Empty array if no bugs
+          setBugs([]); 
         }
       } catch (error) {
         console.error("❌ Error fetching bugs:", error);
-        setBugs([]); // Error pe empty array
+        setBugs([]); 
       } finally {
-        setLoading(false); // Loading end
+        setLoading(false); 
       }
     };
 
     fetchBugs();
-  }, [getAllBugs]); // Dependency mein getAllBugs daal diya
+  }, [getAllBugs]); 
 
   //  useEffect(() => {
   //   getAllBugs("page=1&limit=10"); // Customize as needed

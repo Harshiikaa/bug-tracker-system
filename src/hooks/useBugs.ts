@@ -81,19 +81,41 @@ export function useBugs(token: string | null) {
     [token] // Depend on token directly instead of headers
   );
 
-  const getBugById = async (id: string) => {
+  const getBugById = useCallback(
+  async (id: string) => {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/${id}`, { headers });
       const data = await res.json();
-      if (data._id) setBug(data);
-      return data;
+      console.log('🐞 Get bug by ID response:', data); // Debug log
+      if (data._id) {
+        setBug(data); // Update bug state
+      } else {
+        setBug(null); // Set null if no valid bug
+      }
+      return data; // Return data for external use
     } catch (err) {
       console.error('Get bug by ID error:', err);
+      setBug(null); // Set null on error
     } finally {
       setLoading(false);
     }
-  };
+  },
+  [token] // Depend on token directly instead of headers
+);
+  // const getBugById = async (id: string) => {
+  //   setLoading(true);
+  //   try {
+  //     const res = await fetch(`${API_URL}/${id}`, { headers });
+  //     const data = await res.json();
+  //     if (data._id) setBug(data);
+  //     return data;
+  //   } catch (err) {
+  //     console.error('Get bug by ID error:', err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // Update bug
   const updateBug = async (id: string, updates: any) => {
