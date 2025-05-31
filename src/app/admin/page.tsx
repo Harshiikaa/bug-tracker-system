@@ -31,7 +31,7 @@ export default function AdminDashboard() {
 
     fetchBugs();
   }, [getAllBugs]); // Dependency mein getAllBugs daal diya
-  
+
   //  useEffect(() => {
   //   getAllBugs("page=1&limit=10"); // Customize as needed
   // }, []);
@@ -47,28 +47,55 @@ export default function AdminDashboard() {
         {loading ? (
           <p>Loading bugs...</p>
         ) : bugs.length > 0 ? (
-          <table className="w-full bg-white rounded shadow text-left">
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="p-3">Title</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Priority</th>
-                <th className="p-3">Created By</th>
-                <th className="p-3">Assigned To</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bugs.map((bug: any) => (
-                <tr key={bug._id} className="border-b">
-                  <td className="p-3">{bug.title}</td>
-                  <td className="p-3">{bug.status}</td>
-                  <td className="p-3">{bug.priority}</td>
-                  <td className="p-3">{bug.createdBy?.name || "Unknown"}</td>
-                  <td className="p-3">{bug.assignedTo?.name || "Unassigned"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+         <table className="w-full bg-white rounded-xl shadow-lg text-left border border-gray-100">
+  <thead className="bg-gray-100 text-gray-700 font-semibold">
+    <tr>
+      <th className="p-4 rounded-tl-xl">Title</th>
+      <th className="p-4">Status</th>
+      <th className="p-4">Priority</th>
+      <th className="p-4">Created By</th>
+      <th className="p-4 rounded-tr-xl">Assigned To</th>
+    </tr>
+  </thead>
+  <tbody>
+    {bugs.map((bug: any) => (
+      <tr
+        key={bug._id}
+        className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150"
+      >
+        <td className="p-4 font-medium text-gray-800">{bug.title}</td>
+        <td className="p-4">
+          <span
+            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+              bug.status === 'Open'
+                ? 'bg-blue-100 text-blue-700'
+                : bug.status === 'In Progress'
+                ? 'bg-yellow-100 text-yellow-700'
+                : 'bg-green-100 text-green-700'
+            }`}
+          >
+            {bug.status}
+          </span>
+        </td>
+        <td className="p-4">
+          <span
+            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+              bug.priority === 'High'
+                ? 'bg-red-100 text-red-700'
+                : bug.priority === 'Medium'
+                ? 'bg-orange-100 text-orange-700'
+                : 'bg-gray-100 text-gray-700'
+            }`}
+          >
+            {bug.priority}
+          </span>
+        </td>
+        <td className="p-4 text-gray-600">{bug.createdBy?.name || 'Unknown'}</td>
+        <td className="p-4 text-gray-600">{bug.assignedTo?.name || 'Unassigned'}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
         ) : (
           <p>No bugs found.</p>
         )}
