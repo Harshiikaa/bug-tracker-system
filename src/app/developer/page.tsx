@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import ProtectedAuth from '@/components/ProtectedAuth';
 // Assuming useAuth provides token; adjust based on your auth setup
 import { useAuth } from '@/hooks/useAuth'; // Adjust path if needed
+import { Bug } from '@/types/Bug';
 
 
 

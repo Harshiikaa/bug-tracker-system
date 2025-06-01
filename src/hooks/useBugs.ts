@@ -20,6 +20,13 @@ type BugResponse = {
     itemsPerPage: number;
   };
 };
+
+type UserBugsResponse = {
+  success: boolean;
+  data: Bug[];
+  message?: string;
+};
+
 const API_URL = 'http://localhost:3001/api/bugs';
 
 export function useBugs(token: string | null) {
@@ -129,6 +136,32 @@ const response = await fetch(`${API_URL.replace(/\/$/, '')}/dashboard`, {
     return response.json();
   };
 
+   // Get user-specific bugs (Testers: createdBy, Developers: assignedTo)
+const getBugs = useCallback(
+  async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/my-bugs`, { headers });
+      const data: UserBugsResponse = await res.json();
+      console.log('🐞 Get user bugs response:', JSON.stringify(data, null, 2));
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to fetch user bugs');
+      }
+      if (!data.success || !Array.isArray(data.data)) {
+        throw new Error('Invalid response format from server');
+      }
+      setBugs(data.data);
+      return data.data;
+    } catch (err) {
+      console.error('Get user bugs error:', err);
+      setBugs([]);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  },
+  [token]
+);
   
   const updateBug = async (id: string, updates: any) => {
     setLoading(true);
@@ -200,10 +233,12 @@ const response = await fetch(`${API_URL.replace(/\/$/, '')}/dashboard`, {
   };
 
   return {
-  
+  bugs,
+  loading,
     createBug,
     getAllBugs,
     getBugById,
+    getBugs,
     getBugsForDashboard,
     updateBug,
     deleteBug,

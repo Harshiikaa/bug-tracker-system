@@ -116,7 +116,7 @@ export default function AdminDashboard() {
     }
   }, [developers]);
 
-  // Update bug assignment
+  // Update bug assignment (only the assignedTo)
   const updateBug = async (id: string, updates: any) => {
     setLoading(true);
     try {
