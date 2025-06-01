@@ -299,7 +299,7 @@ const getBugs = [
 
       if (user.role === "Tester") {
         bugs = await Bug.find({ createdBy: user._id }).populate("assignedTo");
-      } else if (user.role === "Developer") {
+      } else if (user.role === "User") {
         bugs = await Bug.find({ assignedTo: user._id }).populate("createdBy");
       } else {
         return res.status(403).json({
