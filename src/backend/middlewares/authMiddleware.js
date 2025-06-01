@@ -29,7 +29,7 @@ const protect = asyncHandler(async (req, res, next) => {
   }
 });
 
-// ✅ Middleware to restrict route access by role(s)
+// Middleware to restrict route access by role(s)
 const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
@@ -41,12 +41,5 @@ const authorizeRoles = (...allowedRoles) => {
     next();
   };
 };
-// const isAdmin = (req, res, next) => {
-//   if (req.user && req.user.role === 'Admin') {
-//     next();
-//   } else {
-//     return res.status(403).json({ success: false, message: 'Access denied: Admins only' });
-//   }
-// };
 
 module.exports = { protect, authorizeRoles };
