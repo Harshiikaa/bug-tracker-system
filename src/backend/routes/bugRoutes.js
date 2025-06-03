@@ -10,18 +10,79 @@ const {
   addComment,
   deleteComment,
   getBugs,
-  getBugsForDashboard,
 } = require("../controllers/bugController");
 const { protect, authorizeRoles } = require("../middlewares/authMiddleware");
+const {
+  validateCreateBug,
+  validateGetAllBugs,
+  validateGetBugById,
+  validateUpdateBug,
+  validateDeleteBug,
+  validateAddComment,
+  validateDeleteComment,
+} = require("../validators/bugValidators");
+const {
+  handleValidationErrors,
+} = require("../middlewares/validationMiddleware");
 
-router.post("/", protect, authorizeRoles("Tester"), createBug);
-router.get("/my-bugs", protect, authorizeRoles("Tester", "User"), getBugs); // for testers/devs
-router.get("/", protect, authorizeRoles("Admin"), getAllBugs); // only for admin
-router.get("/:id", protect, getBugById);
-router.get('/dashboard', protect, getBugsForDashboard);
-router.put("/:id", protect, authorizeRoles("Tester", "Admin"), updateBug);
-router.delete("/:id", protect, authorizeRoles("Admin"), deleteBug);
-router.post("/:id/comments", protect, addComment);
-router.delete("/:id/comments/:commentId", protect, deleteComment);
+router.post(
+  "/",
+  protect,
+  validateCreateBug,
+  handleValidationErrors,
+  authorizeRoles("Tester"),
+  asyncHandler(createBug)
+);
+router.get(
+  "/my-bugs",
+  protect,
+  authorizeRoles("Tester", "User"),
+  asyncHandler(getBugs)
+); // for testers/devs
+router.get(
+  "/",
+  protect,
+  validateGetAllBugs,
+  handleValidationErrors,
+  authorizeRoles("Admin"),
+  asyncHandler(getAllBugs)
+); // only for admin
+router.get(
+  "/:id",
+  protect,
+  validateGetBugById,
+  handleValidationErrors,
+  asyncHandler(getBugById)
+);
+router.put(
+  "/:id",
+  protect,
+  validateUpdateBug,
+  handleValidationErrors,
+  authorizeRoles("Tester", "Admin"),
+  asyncHandler(updateBug)
+);
+router.delete(
+  "/:id",
+  protect,
+  validateDeleteBug,
+  handleValidationErrors,
+  authorizeRoles("Admin"),
+  asyncHandler(deleteBug)
+);
+router.post(
+  "/:id/comments",
+  protect,
+  validateAddComment,
+  handleValidationErrors,
+  asyncHandler(addComment)
+);
+router.delete(
+  "/:id/comments/:commentId",
+  protect,
+  validateDeleteComment,
+  handleValidationErrors,
+  asyncHandler(deleteComment)
+);
 
 module.exports = router;

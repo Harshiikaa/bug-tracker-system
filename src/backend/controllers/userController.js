@@ -4,23 +4,13 @@ const User = require("../models/User");
 const { body, param, validationResult } = require("express-validator");
 
 // Get all users
-const getAllUsers = [
-  asyncHandler(async (req, res) => {
+const getAllUsers = async (req, res) => {
     const users = await User.find().select("-password");
     res.json({ users });
-  }),
-];
+  };
 
 // Get user by ID
-const getUserById = [
-  param("id").isMongoId().withMessage("Invalid user ID"),
-  asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res
-        .status(400)
-        .json({ success: false, errors: errors.array().map((e) => e.msg) });
-    }
+const getUserById =async (req, res) => {
     const user = await User.findById(req.params.id).select("-password");
     if (!user) {
       return res
@@ -28,36 +18,19 @@ const getUserById = [
         .json({ success: false, message: "User not found" });
     }
     res.json(user);
-  }),
-];
+  };
 
 // Get Developers in the bug (assignedTo field)
 
-const getDevelopers = [
-  asyncHandler(async (req, res) => {
+const getDevelopers = async (req, res) => {
     const developers = await User.find({ role: "User" }).select(
       "_id name email"
     );
     res.status(200).json({ success: true, data: developers });
-  }),
-];
+  };
 
 // Update user
-const updateUser = [
-  param("id").isMongoId().withMessage("Invalid user ID"),
-  body("name").optional().trim().notEmpty().withMessage("Name cannot be empty"),
-  body("email").optional().isEmail().withMessage("Invalid email format"),
-  body("role")
-    .optional()
-    .isIn(["User", "Tester", "Admin"])
-    .withMessage("Invalid role"),
-  asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res
-        .status(400)
-        .json({ success: false, errors: errors.array().map((e) => e.msg) });
-    }
+const updateUser = async (req, res) => {
     const { name, email, role } = req.body;
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -81,19 +54,10 @@ const updateUser = [
       new: true,
     }).select("-password");
     res.json({ success: true, user: updatedUser });
-  }),
-];
+  };
 
 // Delete user
-const deleteUser = [
-  param("id").isMongoId().withMessage("Invalid user ID"),
-  asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res
-        .status(400)
-        .json({ success: false, errors: errors.array().map((e) => e.msg) });
-    }
+const deleteUser = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) {
       return res
@@ -107,8 +71,7 @@ const deleteUser = [
     }
     await user.deleteOne();
     res.json({ success: true, message: "User deleted successfully" });
-  }),
-];
+  };
 
 module.exports = {
   getAllUsers,
