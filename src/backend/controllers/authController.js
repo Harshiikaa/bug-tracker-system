@@ -7,95 +7,62 @@ const bcrypt = require("bcryptjs");
 
 // Register User
 
-const register = [
-  body("name").trim().notEmpty().withMessage("Name is required"),
-  body("email").isEmail().withMessage("Invalid email format"),
-  body("password")
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters long"),
-  body("role")
-    .optional()
-    .isIn(["User", "Tester", "Admin"])
-    .withMessage("Invalid role"),
+const register = async (req, res) => {
+  const { name, email, password, role } = req.body;
 
-  asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        errors: errors.array().map((e) => e.msg),
-      });
-    }
-
-    const { name, email, password, role } = req.body;
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already exists.",
-      });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword,
-      role: role || "User", // fallback to default if not provided
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(400).json({
+      success: false,
+      message: "Email already exists.",
     });
+  }
 
-    await newUser.save();
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
 
-    res.status(201).json({
-      success: true,
-      message: "User created successfully.",
-    });
-  }),
-];
+  const newUser = new User({
+    name,
+    email,
+    password: hashedPassword,
+    role: role || "User", // fallback to default if not provided
+  });
+
+  await newUser.save();
+
+  res.status(201).json({
+    success: true,
+    message: "User created successfully.",
+  });
+};
 
 // Login User
-const login = [
-  body("email").isEmail().withMessage("Invalid email format"),
-  body("password").notEmpty().withMessage("Password is required"),
+const login = async (req, res) => {
+  const { email, password } = req.body;
 
-  asyncHandler(async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        errors: errors.array().map((e) => e.msg),
-      });
-    }
-
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      });
-    }
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
+  const user = await User.findOne({ email });
+  if (!user || !(await user.comparePassword(password))) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid credentials",
     });
+  }
 
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    });
-  }),
-];
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    expiresIn: "1d",
+  });
+
+  res.json({
+    success: true,
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    },
+  });
+};
 
 // Get User Profile
 const getProfile = [
