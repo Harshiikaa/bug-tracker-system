@@ -19,11 +19,7 @@ const createBug = async (req, res) => {
   await bug.save();
   await bug.populate([{ path: "createdBy", select: "name" }]);
 
-  res.status(201).json({
-    success: true,
-    message: "Bug created successfully",
-    data: bug,
-  });
+  return sendSuccess(res, 201, "Bug created successfully", bug);
 };
 
 const getBugById = async (req, res) => {
@@ -37,13 +33,10 @@ const getBugById = async (req, res) => {
   ]);
 
   if (!bug) {
-    return res.status(404).json({
-      success: false,
-      message: "Bug not found or unauthorized access",
-    });
+    return sendError(res, 404, "Bug not found or unauthorized access");
   }
 
-  res.json({ success: true, data: bug });
+  return sendSuccess(res, 200, "Bug fetched successfully", bug);
 };
 
 // GET bugs by owner (Tester) and assignedDevelopers
@@ -56,16 +49,13 @@ const getBugs = async (req, res) => {
   } else if (user.role === "User") {
     bugs = await Bug.find({ assignedTo: user._id }).populate("createdBy");
   } else {
-    return res.status(403).json({
-      success: false,
-      message:
-        "Access denied: Only Testers and Developers can use this endpoint",
-    });
+    return sendError(
+      res,
+      403,
+      "Access denied: Only Testers and Developers can use this endpoint"
+    );
   }
-  res.status(200).json({
-    success: true,
-    data: bugs,
-  });
+  return sendSuccess(res, 200, "Bugs fetched successfully", bugs);
 };
 
 // Get all bugs
@@ -78,10 +68,12 @@ const getAllBugs = async (req, res) => {
     priority,
     assignedTo,
   } = req.query;
+
   const query = {};
   if (status) query.status = status;
   if (priority) query.priority = priority;
   if (assignedTo) query.assignedTo = assignedTo;
+
   const options = {
     skip: (page - 1) * limit,
     limit: parseInt(limit),
@@ -91,9 +83,10 @@ const getAllBugs = async (req, res) => {
       { path: "assignedTo", select: "name" },
     ],
   };
+
   const bugs = await Bug.find(query, null, options);
   const totalItems = await Bug.countDocuments(query);
-  res.json({
+  return sendSuccess(res, 200, "Bugs fetched successfully", {
     bugs,
     pagination: {
       totalItems,
@@ -108,16 +101,14 @@ const getAllBugs = async (req, res) => {
 const updateBug = async (req, res) => {
   const bug = await Bug.findById(req.params.id);
   if (!bug) {
-    return res.status(404).json({ success: false, message: "Bug not found" });
+    return sendError(res, 404, "Bug not found");
   }
 
   if (
     bug.createdBy.toString() !== req.user._id.toString() &&
     req.user.role !== "Admin"
   ) {
-    return res
-      .status(403)
-      .json({ success: false, message: "Not creator or admin" });
+    return sendError(res, 403, "Not creator or admin");
   }
 
   const { title, description, priority, status, assignedTo } = req.body;
@@ -139,24 +130,24 @@ const updateBug = async (req, res) => {
     { path: "createdBy", select: "name" },
     { path: "assignedTo", select: "name" },
   ]);
-  res.json({ success: true, bug: updatedBug });
+  return sendSuccess(res, 200, "Bug updated successfully", updatedBug);
 };
 
 // Delete bug
 const deleteBug = async (req, res) => {
   const bug = await Bug.findById(req.params.id);
   if (!bug) {
-    return res.status(404).json({ success: false, message: "Bug not found" });
+    return sendError(res, 404, "Bug not found");
   }
   await bug.deleteOne();
-  res.json({ success: true, message: "Bug deleted successfully" });
+  return sendSuccess(res, 200, "Bug deleted successfully");
 };
 
 // Add comment
 const addComment = async (req, res) => {
   const bug = await Bug.findById(req.params.id);
   if (!bug) {
-    return res.status(404).json({ success: false, message: "Bug not found" });
+    return sendError(res, 404, "Bug not found");
   }
   bug.comments.push({ text: req.body.text, createdBy: req.user._id });
   await bug.save();
@@ -165,32 +156,32 @@ const addComment = async (req, res) => {
     { path: "assignedTo", select: "name" },
     { path: "comments.createdBy", select: "name" },
   ]);
-  res.status(201).json({ success: true, bug });
+  return sendSuccess(res, 201, "Comment added successfully", bug);
 };
 
 // Delete comment
 const deleteComment = async (req, res) => {
   const bug = await Bug.findById(req.params.id);
   if (!bug) {
-    return res.status(404).json({ success: false, message: "Bug not found" });
+    return sendError(res, 404, "Bug not found");
   }
   const comment = bug.comments.id(req.params.commentId);
   if (!comment) {
-    return res
-      .status(404)
-      .json({ success: false, message: "Comment not found" });
+    return sendError(res, 404, "Comment not found");
   }
-  if (
-    comment.createdBy.toString() !== req.user._id.toString() &&
-    req.user.role !== "Admin"
-  ) {
-    return res
-      .status(403)
-      .json({ success: false, message: "Not comment creator or admin" });
+
+  const isOwnerOrAdmin =
+    comment.createdBy.toString() === req.user._id.toString() ||
+    req.user.role === "Admin";
+
+  if (!isOwnerOrAdmin) {
+    return sendError(res, 403, "Not comment creator or admin");
   }
+
   bug.comments.pull(req.params.commentId);
   await bug.save();
-  res.json({ success: true, message: "Comment deleted successfully" });
+
+  return sendSuccess(res, 200, "Comment deleted successfully");
 };
 
 module.exports = {

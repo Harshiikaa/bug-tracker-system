@@ -24,6 +24,7 @@ const {
 const {
   handleValidationErrors,
 } = require("../middlewares/validationMiddleware");
+const asyncHandler = require("../middlewares/asyncHandler");
 
 router.post(
   "/",

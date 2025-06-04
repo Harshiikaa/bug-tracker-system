@@ -20,6 +20,7 @@ const {
   validateUpdateUser,
   validateDeleteUser,
 } = require("../validators/userValidators");
+const asyncHandler = require("../middlewares/asyncHandler");
 
 router.get("/", protect, authorizeRoles("Admin"), asyncHandler(getAllUsers));
 router.get(
