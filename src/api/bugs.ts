@@ -1,16 +1,16 @@
 // src/api/bugs.ts
 import { handleAxiosResponse } from '@/utils/handleAxiosResponse';
 import { api } from './axiosInstance';
+import { Bug } from '@/types/Bug';
 
-export type Bug = {
-  _id: string;
-  title: string;
-  description: string;
-  status?: string;
-  priority?: string;
-  createdBy?: { name: string };
-  assignedTo?: { name: string };
-};
+// export type Bug = {
+//   _id: string;
+//   title: string;
+//   description: string;
+//   status?: string;
+//   priority?: string;
+//   createdBy?: { name: string };
+//  assignedTo?: string | { _id: string; name: string };};
 
 const authHeader = (token: string) => ({
   headers: { Authorization: `Bearer ${token}` },
@@ -45,12 +45,6 @@ export const deleteBug = (token: string, id: string) =>
   handleAxiosResponse<{ message: string }>(
     api.delete(`/bugs/${id}`, authHeader(token))
   );
-
-// export const getBugsForDashboard = (token: string) =>
-//   handleAxiosResponse<Bug[]>(
-//     api.get('/bugs/dashboard', authHeader(token))
-//   );
-
 
 export const addComment = (token: string, bugId: string, text: string) =>
   handleAxiosResponse<Bug>(

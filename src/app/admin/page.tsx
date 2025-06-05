@@ -3,273 +3,613 @@
 import ProtectedAuth from "@/components/ProtectedAuth";
 import { useBugs } from "@/hooks/useBugs";
 import { useUsers } from "@/hooks/useUsers";
-import { useEffect, useState } from "react";
+import { useState, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Bug } from "@/types/Bug";
 
-interface Bug {
-  _id: string;
-  title: string;
-  status: string;
-  priority: string;
-  createdBy: { name: string } | null;
-  assignedTo: string | { _id: string; name: string; email: string } | null;
-}
+type BugUpdatePayload = Partial<
+  Pick<Bug, "title" | "description" | "status" | "priority" | "assignedTo">
+>;
+
 interface Developer {
   _id: string;
   name: string;
   email: string;
 }
 
-const API_URL = "http://localhost:3001/api/bugs";
-const headers = {
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("authToken") : ""}`,
-};
-
 export default function AdminDashboard() {
-  const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
-  const { getAllBugs } = useBugs(token);
-  const { getDevelopers } = useUsers(token);
-  const [bugs, setBugs] = useState<Bug[]>([]);
-  const [developers, setDevelopers] = useState<Developer[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingDevelopers, setLoadingDevelopers] = useState(false);
+  const queryClient = useQueryClient();
+  const { getAllBugsQuery, update } = useBugs('', { role: 'Admin' });
+  const { getDevelopersQuery } = useUsers();
   const [showDropdown, setShowDropdown] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
-  // Fetch bugs
-  const fetchBugs = async () => {
-    setLoading(true);
-    try {
-      const response = await getAllBugs("page=1&limit=10");
-      console.log("🐞 Bugs response:", JSON.stringify(response, null, 2));
-      const normalizedBugs = response?.bugs.map((bug: any) => ({
-        ...bug,
-        assignedTo: bug.assignedTo
-          ? typeof bug.assignedTo === "string"
-            ? bug.assignedTo
-            : bug.assignedTo._id
-          : null,
-      })) || [];
-      setBugs(normalizedBugs);
-    } catch (error) {
-      console.error("❌ Error fetching bugs:", error);
-      setBugs([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const bugs: Bug[] = getAllBugsQuery.data?.bugs || [];
+  const developers: Developer[] = getDevelopersQuery.data || [];
 
-  useEffect(() => {
-    if (token) {
-      fetchBugs();
-    }
-  }, [getAllBugs, token]);
+  const [formData, setFormData] = useState<BugUpdatePayload>({
+    title: '',
+    description: '',
+    priority: 'Medium',
+    status: 'Open',
+    assignedTo: '',
+  });
 
-  // Fetch developers
-  useEffect(() => {
-    const fetchDevelopers = async () => {
-      setLoadingDevelopers(true);
-      try {
-        const developersData = await getDevelopers();
-        console.log("👨‍💻 Developers data:", JSON.stringify(developersData, null, 2));
-        setDevelopers(developersData || []);
-      } catch (error) {
-        console.error("❌ Error fetching developers:", error);
-        setDevelopers([]);
-      } finally {
-        setLoadingDevelopers(false);
-      }
-    };
+  const [editingBugId, setEditingBugId] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-    if (token) {
-      fetchDevelopers();
-    }
-  }, [getDevelopers, token]);
+  const handleEdit = (bug: Bug) => {
+    const assignedDevId =
+      typeof bug.assignedTo === 'object' && bug.assignedTo !== null
+        ? bug.assignedTo._id
+        : typeof bug.assignedTo === 'string'
+        ? bug.assignedTo
+        : '';
 
-  // Function to find developer's name by ID
-  const getDeveloperName = (assigned: string | { _id: string; name: string; email: string } | null) => {
-    if (!assigned) {
-      console.log("No assignedTo value for bug");
-      return "Unassigned";
-    }
-    const assignedId = typeof assigned === "string" ? assigned : assigned._id;
-    const developer = developers.find((dev: Developer) => {
-      const match = dev._id === assignedId;
-      if (!match) {
-        console.log(`No developer found for assignedTo: ${assignedId}, developer IDs:`, developers.map(d => d._id));
-      }
-      return match;
+    setFormData({
+      title: bug.title,
+      description: bug.description,
+      priority: bug.priority,
+      status: bug.status,
+      assignedTo: assignedDevId,
     });
-    return developer ? developer.name : "Unassigned";
+
+    setEditingBugId(bug._id);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
   };
 
-  // Function to get list of developer names
-  const getDeveloperNames = (developers: Developer[]) => {
-    const names = developers.map((dev) => dev.name);
-    console.log("List of developers:", names);
-    return names;
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Call getDeveloperNames when developers changes
-  useEffect(() => {
-    if (developers.length > 0) {
-      getDeveloperNames(developers);
-    }
-  }, [developers]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage('');
+    setError(null);
 
-  // Update bug assignment (only the assignedTo)
-  const updateBug = async (id: string, updates: any) => {
-    setLoading(true);
+    if (!editingBugId) return;
+
     try {
-      const res = await fetch(`${API_URL}/${id}`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify(updates),
+      await update.mutateAsync({
+        id: editingBugId,
+        updates: {
+          title: formData.title,
+          description: formData.description,
+          priority: formData.priority,
+          status: formData.status,
+          assignedTo: formData.assignedTo || undefined,
+        },
       });
-      const data = await res.json();
-      console.log("Update bug response:", JSON.stringify(data, null, 2));
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to update bug");
-      }
-      return {
-        ...data,
-        assignedTo: data.assignedTo
-          ? typeof data.assignedTo === "string"
-            ? data.assignedTo
-            : data.assignedTo._id
-          : null,
-      };
-    } catch (err) {
-      console.error("Update bug error:", err);
-      throw err;
-    } finally {
-      setLoading(false);
+
+      await queryClient.invalidateQueries({ queryKey: ['/', ''] });
+
+      setMessage('Bug updated successfully!');
+      setEditingBugId(null);
+      setFormData({
+        title: '',
+        description: '',
+        priority: 'Medium',
+        status: 'Open',
+        assignedTo: '',
+      });
+    } catch (err: any) {
+      setError(err.message || 'Bug update failed');
     }
   };
 
-  // Handle assignment change
+  const getDeveloperName = (assigned: Bug['assignedTo']) => {
+    return typeof assigned === 'object' && assigned !== null
+      ? assigned.name
+      : 'Unassigned';
+  };
+
   const handleAssignChange = async (bugId: string, newAssignedTo: string) => {
     try {
-      const updates = { assignedTo: newAssignedTo || null };
-      const updatedBug = await updateBug(bugId, updates);
-      if (updatedBug) {
-        // Refetch bugs to ensure UI reflects backend state
-        await fetchBugs();
-        console.log(`Assigned bug ${bugId} to ${newAssignedTo || "Unassigned"}`);
-      }
+      await update.mutateAsync({
+        id: bugId,
+        updates: { assignedTo: newAssignedTo || undefined },
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/', ''] });
     } catch (error) {
-      console.error("Error updating bug assignment:", error);
-      alert("Failed to update bug assignment. Please try again.");
+      console.error("❌ Failed to assign developer:", error);
+      alert("Something went wrong while assigning.");
     }
     setShowDropdown(null);
   };
 
-  // Toggle dropdown visibility
   const toggleDropdown = (bugId: string) => {
     setShowDropdown((prev) => (prev === bugId ? null : bugId));
   };
 
   return (
     <ProtectedAuth allowedRoles={["Admin"]}>
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="min-h-screen p-6 bg-gray-100">
-          <h1 className="text-3xl font-bold text-green-700 mb-6">
-            Welcome to Admin Dashboard 🧪
-          </h1>
+      <div className="min-h-screen p-6 bg-gray-100">
+        <h1 className="text-3xl font-bold text-green-700 mb-6">
+          Welcome to Admin Dashboard 🧪
+        </h1>
 
-          {loading || loadingDevelopers ? (
-            <p>Loading data...</p>
-          ) : bugs.length > 0 ? (
-            <table className="w-full bg-white rounded-xl shadow-lg text-left border border-gray-200">
-              <thead className="bg-gray-100 text-gray-700 font-semibold">
-                <tr>
-                  <th className="p-4 rounded-tl-xl">Title</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Priority</th>
-                  <th className="p-4">Created By</th>
-                  <th className="p-4">Assigned To</th>
-                  <th className="p-4 rounded-tr-xl">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bugs.map((bug: Bug) => (
-                  <tr
-                    key={bug._id}
-                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150"
-                  >
-                    <td className="p-4 font-medium text-gray-800">{bug.title}</td>
-                    <td className="p-4">
-                      <span
-                        className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                          bug.status === "Open"
-                            ? "bg-blue-100 text-blue-700"
-                            : bug.status === "In Progress"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {bug.status}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span
-                        className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                          bug.priority === "High"
-                            ? "bg-red-100 text-red-700"
-                            : bug.priority === "Medium"
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        {bug.priority}
-                      </span>
-                    </td>
-                    <td className="p-4 text-gray-600">{bug.createdBy?.name || "Unknown"}</td>
-                    <td className="p-4 text-gray-600 relative">
-                      <span
-                        className="cursor-pointer hover:underline"
-                        onClick={() => toggleDropdown(bug._id)}
-                      >
-                        {getDeveloperName(bug.assignedTo)}
-                      </span>
-                      {showDropdown === bug._id && (
-                        <div className="absolute z-10 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg">
-                          <div className="py-1">
-                            <button
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                              onClick={() => handleAssignChange(bug._id, "")}
-                            >
-                              Unassigned
-                            </button>
-                            {developers.map((dev: Developer) => (
-                              <button
-                                key={dev._id}
-                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                onClick={() => handleAssignChange(bug._id, dev._id)}
-                              >
-                                {dev.name}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <button
-                        onClick={() => console.log("Edit bug:", bug._id)}
-                        className="text-blue-600 hover:underline"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p>No bugs found.</p>
+        {/* Bug Edit Form */}
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="max-w-xl mx-auto space-y-4 bg-white p-6 rounded-lg shadow mb-10"
+        >
+          {editingBugId && (
+            <h2 className="text-xl font-bold text-gray-700">
+              Editing Bug: {formData.title}
+            </h2>
           )}
-        </div>
+          <input
+            type="text"
+            name="title"
+            placeholder="Title"
+            value={formData.title || ''}
+            onChange={handleChange}
+            required
+            className="w-full p-2 border rounded"
+          />
+          <textarea
+            name="description"
+            placeholder="Description"
+            value={formData.description || ''}
+            onChange={handleChange}
+            required
+            className="w-full p-2 border rounded"
+          />
+          <select
+            name="priority"
+            value={formData.priority || 'Medium'}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+          >
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
+          <select
+            name="status"
+            value={formData.status || 'Open'}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+          >
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Closed">Closed</option>
+          </select>
+          <select
+            name="assignedTo"
+            value={
+              typeof formData.assignedTo === 'object'
+                ? formData.assignedTo._id
+                : formData.assignedTo || ''
+            }
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Unassigned</option>
+            {developers.map((dev) => (
+              <option key={dev._id} value={dev._id}>
+                {dev.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              className="flex-1 py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              {editingBugId ? "Update Bug" : "Update"}
+            </button>
+            {editingBugId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingBugId(null);
+                  setFormData({
+                    title: '',
+                    description: '',
+                    priority: 'Medium',
+                    status: 'Open',
+                    assignedTo: '',
+                  });
+                }}
+                className="flex-1 py-2 px-4 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+          {message && <p className="text-green-600 text-center">{message}</p>}
+          {error && <p className="text-red-600 text-center">{error}</p>}
+        </form>
+
+        {/* Bugs Table */}
+        {getAllBugsQuery.isLoading || getDevelopersQuery.isLoading ? (
+          <p>Loading...</p>
+        ) : (
+          <table className="w-full bg-white rounded-xl shadow-lg text-left border border-gray-200">
+            <thead className="bg-gray-100 text-gray-700 font-semibold">
+              <tr>
+                <th className="p-4 rounded-tl-xl">Title</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Priority</th>
+                <th className="p-4">Created By</th>
+                <th className="p-4">Assigned To</th>
+                <th className="p-4 rounded-tr-xl">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bugs.map((bug) => (
+                <tr key={bug._id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                  <td className="p-4 font-medium text-gray-800">{bug.title}</td>
+                  <td className="p-4">
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                      bug.status === "Open"
+                        ? "bg-blue-100 text-blue-700"
+                        : bug.status === "In Progress"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-green-100 text-green-700"
+                    }`}>{bug.status}</span>
+                  </td>
+                  <td className="p-4">
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                      bug.priority === "High"
+                        ? "bg-red-100 text-red-700"
+                        : bug.priority === "Medium"
+                        ? "bg-orange-100 text-orange-700"
+                        : "bg-gray-100 text-gray-700"
+                    }`}>{bug.priority}</span>
+                  </td>
+                  <td className="p-4 text-gray-600">{bug.createdBy?.name || "Unknown"}</td>
+                  <td className="p-4 text-gray-600 relative">
+                    <span className="cursor-pointer hover:underline" onClick={() => toggleDropdown(bug._id)}>
+                      {getDeveloperName(bug.assignedTo)}
+                    </span>
+                    {showDropdown === bug._id && (
+                      <div className="absolute z-10 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg">
+                        <div className="py-1">
+                          <button
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => handleAssignChange(bug._id, "")}
+                          >
+                            Unassigned
+                          </button>
+                          {developers.map((dev) => (
+                            <button
+                              key={dev._id}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              onClick={() => handleAssignChange(bug._id, dev._id)}
+                            >
+                              {dev.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    <button
+                      onClick={() => handleEdit(bug)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </ProtectedAuth>
   );
 }
+
+
+
+// 'use client';
+
+// import ProtectedAuth from "@/components/ProtectedAuth";
+// import { useBugs } from "@/hooks/useBugs";
+// import { useUsers } from "@/hooks/useUsers";
+// import { useState, useRef } from "react";
+// import { useQueryClient } from "@tanstack/react-query";
+// import { Bug } from "@/types/Bug";
+
+// type BugUpdatePayload = Partial<
+//   Pick<Bug, "title" | "description" | "status" | "priority" | "assignedTo">
+// >;
+
+// interface Developer {
+//   _id: string;
+//   name: string;
+//   email: string;
+// }
+
+// export default function AdminDashboard() {
+//   const queryClient = useQueryClient();
+//   const { getAllBugsQuery, update } = useBugs('', { role: 'Admin' });
+//   const { getDevelopersQuery } = useUsers();
+//   const [showDropdown, setShowDropdown] = useState<string | null>(null);
+//   const formRef = useRef<HTMLFormElement | null>(null);
+
+//   const bugs: Bug[] = getAllBugsQuery.data?.bugs || [];
+//   const developers: Developer[] = getDevelopersQuery.data || [];
+
+//   const [formData, setFormData] = useState<BugUpdatePayload>({
+//     title: '',
+//     description: '',
+//     priority: 'Medium',
+//     status: 'Open',
+//     assignedTo: '',
+//   });
+
+//   const [editingBugId, setEditingBugId] = useState<string | null>(null);
+//   const [message, setMessage] = useState('');
+//   const [error, setError] = useState<string | null>(null);
+
+//   const handleEdit = (bug: Bug) => {
+//     const assignedDevId =
+//       typeof bug.assignedTo === "object" && bug.assignedTo !== null
+//         ? developers.find((d) => d.name === bug.assignedTo?.name)?._id || ''
+//         : '';
+
+//     setFormData({
+//       title: bug.title,
+//       description: bug.description || '',
+//       priority: bug.priority || 'Medium',
+//       status: bug.status || 'Open',
+//       assignedTo: assignedDevId,
+//     });
+
+//     setEditingBugId(bug._id);
+//     setTimeout(() => {
+//       formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+//     }, 100);
+//   };
+
+//   const handleChange = (
+//     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+//   ) => {
+//     setFormData({ ...formData, [e.target.name]: e.target.value });
+//   };
+
+//   const handleSubmit = async (e: React.FormEvent) => {
+//     e.preventDefault();
+//     setMessage('');
+//     setError(null);
+
+//     if (!editingBugId) return;
+
+//     try {
+//       await update.mutateAsync({
+//         id: editingBugId,
+//         updates: {
+//           title: formData.title,
+//           description: formData.description,
+//           priority: formData.priority,
+//           status: formData.status,
+//           assignedTo: formData.assignedTo || undefined,
+//         },
+//       });
+
+//       await queryClient.invalidateQueries({ queryKey: ['/', ''] });
+
+//       setMessage('Bug updated successfully!');
+//       setEditingBugId(null);
+//       setFormData({
+//         title: '',
+//         description: '',
+//         priority: 'Medium',
+//         status: 'Open',
+//         assignedTo: '',
+//       });
+//     } catch (err: any) {
+//       setError(err.message || 'Bug update failed');
+//     }
+//   };
+
+//   const getDeveloperName = (assigned: Bug['assignedTo']) => {
+//     return typeof assigned === 'object' && assigned !== null
+//       ? assigned.name
+//       : "Unassigned";
+//   };
+
+//   const handleAssignChange = async (bugId: string, newAssignedTo: string) => {
+//     try {
+//       await update.mutateAsync({
+//         id: bugId,
+//         updates: {
+//           assignedTo: newAssignedTo || undefined,
+//         },
+//       });
+//       await queryClient.invalidateQueries({ queryKey: ['/', ''] });
+//     } catch (error) {
+//       console.error("❌ Failed to assign developer:", error);
+//       alert("Something went wrong while assigning.");
+//     }
+//     setShowDropdown(null);
+//   };
+
+//   const toggleDropdown = (bugId: string) => {
+//     setShowDropdown((prev) => (prev === bugId ? null : bugId));
+//   };
+
+//   return (
+//     <ProtectedAuth allowedRoles={["Admin"]}>
+//       <div className="min-h-screen p-6 bg-gray-100">
+//         <h1 className="text-3xl font-bold text-green-700 mb-6">Welcome to Admin Dashboard 🧪</h1>
+
+//         <form
+//           ref={formRef}
+//           onSubmit={handleSubmit}
+//           className="max-w-xl mx-auto space-y-4 bg-white p-6 rounded-lg shadow mb-10"
+//         >
+//           {editingBugId && (
+//             <h2 className="text-xl font-bold text-gray-700">
+//               Editing Bug: {formData.title}
+//             </h2>
+//           )}
+//           <input
+//             type="text"
+//             name="title"
+//             placeholder="Title"
+//             value={formData.title || ''}
+//             onChange={handleChange}
+//             required
+//             className="w-full p-2 border rounded"
+//           />
+//           <textarea
+//             name="description"
+//             placeholder="Description"
+//             value={formData.description || ''}
+//             onChange={handleChange}
+//             required
+//             className="w-full p-2 border rounded"
+//           />
+//           <select
+//             name="priority"
+//             value={formData.priority || 'Medium'}
+//             onChange={handleChange}
+//             className="w-full p-2 border rounded"
+//           >
+//             <option value="Low">Low</option>
+//             <option value="Medium">Medium</option>
+//             <option value="High">High</option>
+//           </select>
+//           <select
+//             name="status"
+//             value={formData.status || 'Open'}
+//             onChange={handleChange}
+//             className="w-full p-2 border rounded"
+//           >
+//             <option value="Open">Open</option>
+//             <option value="In Progress">In Progress</option>
+//             <option value="Closed">Closed</option>
+//           </select>
+//           <select
+//             name="assignedTo"
+//             value={formData.assignedTo || ''}
+//             onChange={handleChange}
+//             className="w-full p-2 border rounded"
+//           >
+//             <option value="">Unassigned</option>
+//             {developers.map((dev) => (
+//               <option key={dev._id} value={dev._id}>
+//                 {dev.name}
+//               </option>
+//             ))}
+//           </select>
+
+//           <div className="flex gap-4">
+//             <button
+//               type="submit"
+//               className="flex-1 py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
+//             >
+//               {editingBugId ? "Update Bug" : "Update"}
+//             </button>
+//             {editingBugId && (
+//               <button
+//                 type="button"
+//                 onClick={() => {
+//                   setEditingBugId(null);
+//                   setFormData({ title: '', description: '', priority: 'Medium', status: 'Open', assignedTo: '' });
+//                 }}
+//                 className="flex-1 py-2 px-4 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+//               >
+//                 Cancel
+//               </button>
+//             )}
+//           </div>
+//           {message && <p className="text-green-600 text-center">{message}</p>}
+//           {error && <p className="text-red-600 text-center">{error}</p>}
+//         </form>
+
+//         {getAllBugsQuery.isLoading || getDevelopersQuery.isLoading ? (
+//           <p>Loading...</p>
+//         ) : (
+//           <table className="w-full bg-white rounded-xl shadow-lg text-left border border-gray-200">
+//             <thead className="bg-gray-100 text-gray-700 font-semibold">
+//               <tr>
+//                 <th className="p-4 rounded-tl-xl">Title</th>
+//                 <th className="p-4">Status</th>
+//                 <th className="p-4">Priority</th>
+//                 <th className="p-4">Created By</th>
+//                 <th className="p-4">Assigned To</th>
+//                 <th className="p-4 rounded-tr-xl">Actions</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               {bugs.map((bug) => (
+//                 <tr key={bug._id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+//                   <td className="p-4 font-medium text-gray-800">{bug.title}</td>
+//                   <td className="p-4">
+//                     <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+//                       bug.status === "Open"
+//                         ? "bg-blue-100 text-blue-700"
+//                         : bug.status === "In Progress"
+//                         ? "bg-yellow-100 text-yellow-700"
+//                         : "bg-green-100 text-green-700"
+//                     }`}>{bug.status}</span>
+//                   </td>
+//                   <td className="p-4">
+//                     <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+//                       bug.priority === "High"
+//                         ? "bg-red-100 text-red-700"
+//                         : bug.priority === "Medium"
+//                         ? "bg-orange-100 text-orange-700"
+//                         : "bg-gray-100 text-gray-700"
+//                     }`}>{bug.priority}</span>
+//                   </td>
+//                   <td className="p-4 text-gray-600">{bug.createdBy?.name || "Unknown"}</td>
+//                   <td className="p-4 text-gray-600 relative">
+//                     <span className="cursor-pointer hover:underline" onClick={() => toggleDropdown(bug._id)}>
+//                       {getDeveloperName(bug.assignedTo)}
+//                     </span>
+//                     {showDropdown === bug._id && (
+//                       <div className="absolute z-10 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg">
+//                         <div className="py-1">
+//                           <button
+//                             className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+//                             onClick={() => handleAssignChange(bug._id, "")}
+//                           >
+//                             Unassigned
+//                           </button>
+//                           {developers.map((dev: Developer) => (
+//                             <button
+//                               key={dev._id}
+//                               className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+//                               onClick={() => handleAssignChange(bug._id, dev._id)}
+//                             >
+//                               {dev.name}
+//                             </button>
+//                           ))}
+//                         </div>
+//                       </div>
+//                     )}
+//                   </td>
+//                   <td className="p-4">
+//                     <button
+//                       onClick={() => handleEdit(bug)}
+//                       className="text-blue-600 hover:underline"
+//                     >
+//                       Edit
+//                     </button>
+//                   </td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         )}
+//       </div>
+//     </ProtectedAuth>
+//   );
+// }
+
+

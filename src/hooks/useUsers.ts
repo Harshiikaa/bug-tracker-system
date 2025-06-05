@@ -1,23 +1,75 @@
-import { useCallback } from "react";
+'use client';
 
-const API_URL = 'http://localhost:3001/api/users';
+import { getAllUsers, getDevelopers, User } from '@/api/user';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 
-export const useUsers = (token: string | null) => {
- 
-  const getDevelopers = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_URL.replace(/\/$/, '')}/developers`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      return data.success ? data.data : [];
-    } catch (error) {
-      console.error('❌ Error fetching developers:', error);
-      return [];
+export function useUsers() {
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('authToken');
+    if (storedToken) {
+      setToken(storedToken);
     }
-  }, [token]);
+  }, []);
 
-  return { getDevelopers };
-};
+  const getUsersQuery = useQuery({
+    queryKey: ['users'],
+     queryFn: async () => {
+  const response = await getAllUsers(token!);
+  return response; 
+},
+    enabled: !!token,
+  });
+
+  const getDevelopersQuery = useQuery({
+    queryKey: ['developers'],
+    queryFn: async () => {
+  const response = await getDevelopers(token!);
+  return response; 
+},
+    enabled: !!token,
+  });
+
+  return {
+    token,
+    getUsersQuery,
+    getDevelopersQuery,
+  };
+}
+
+
+
+// 'use client';
+
+// import { getAllUsers, getDevelopers, User } from '@/api/user';
+// import { useQuery } from '@tanstack/react-query';
+// import { useEffect, useState } from 'react';
+
+// export function useUsers() {
+//   const [token, setToken] = useState<string | null>(null);
+
+//   useEffect(() => {
+//     const storedToken = localStorage.getItem('authToken');
+//     if (storedToken) setToken(storedToken);
+//   }, []);
+
+//   const getUsersQuery = useQuery<User[]>({
+//     queryKey: ['users'],
+//     queryFn: () => getAllUsers(token!),
+//     enabled: !!token,
+//   });
+
+//   const getDevelopersQuery = useQuery<User[]>({
+//     queryKey: ['developers'],
+//     queryFn: () => getDevelopers(token!),
+//     enabled: !!token,
+//   });
+
+//   return {
+//     token,
+//     getUsersQuery,
+//     getDevelopersQuery,
+//   };
+// }

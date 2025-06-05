@@ -65,7 +65,7 @@ router.put(
   protect,
   validateUpdateBug,
   handleValidationErrors,
-  authorizeRoles("Tester", "Admin"),
+  authorizeRoles("Tester", "Admin", "User"),
   asyncHandler(updateBug)
 );
 

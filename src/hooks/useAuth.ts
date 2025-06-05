@@ -50,7 +50,7 @@ export function useAuth() {
       localStorage.setItem("authToken", data.token);
        localStorage.setItem("user", JSON.stringify(data.user));
       setToken(data.token);
-      queryClient.setQueryData(["profile"], data.user); // Optimistic update
+      queryClient.setQueryData(["profile"], data.user); 
     },
   });
 

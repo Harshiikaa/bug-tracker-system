@@ -99,32 +99,103 @@ const getAllBugs = async (req, res) => {
 };
 
 // Update bug
+// const updateBug = async (req, res) => {
+//   const bug = await Bug.findById(req.params.id);
+//   if (!bug) {
+//     return sendError(res, 404, "Bug not found");
+//   }
+
+//   if (
+//     bug.createdBy.toString() !== req.user._id.toString() &&
+//     req.user.role !== "Admin"
+//   ) {
+//     return sendError(res, 403, "Not creator or admin");
+//   }
+
+//   const { title, description, priority, status, assignedTo } = req.body;
+//   // if (assignedTo) {
+//   //   const user = await User.findById(assignedTo);
+//   //   if (!user) {
+//   //     return res
+//   //       .status(404)
+//   //       .json({ success: false, message: "Assigned user not found" });
+//   //   }
+//   // }
+//   const updates = { title, description, priority, status, assignedTo };
+//   Object.keys(updates).forEach(
+//     (key) => updates[key] === undefined && delete updates[key]
+//   );
+//   const updatedBug = await Bug.findByIdAndUpdate(req.params.id, updates, {
+//     new: true,
+//   }).populate([
+//     { path: "createdBy", select: "name" },
+//     { path: "assignedTo", select: "name" },
+//   ]);
+//   return sendSuccess(res, 200, "Bug updated successfully", updatedBug);
+// };
+
 const updateBug = async (req, res) => {
   const bug = await Bug.findById(req.params.id);
   if (!bug) {
     return sendError(res, 404, "Bug not found");
   }
 
+  const { title, description, priority, status, assignedTo } = req.body;
+  const updates = { title, description, priority, status, assignedTo };
+
+  // Remove undefined fields
+  Object.keys(updates).forEach(
+    (key) => updates[key] === undefined && delete updates[key]
+  );
+
+  const user = req.user;
+
+  // 🛠 Developer: only allowed to update `status`
+  if (user.role === "User") {
+    const allowedFields = ["status"];
+    const disallowed = Object.keys(updates).some(
+      (key) => !allowedFields.includes(key)
+    );
+    if (disallowed) {
+      return sendError(res, 403, "Developers can only update status");
+    }
+
+    bug.status = status;
+    await bug.save();
+    await bug.populate([
+      { path: "createdBy", select: "name" },
+      { path: "assignedTo", select: "name" },
+    ]);
+    return sendSuccess(res, 200, "Status updated successfully", bug);
+  }
+
+  // 🧪 Tester: cannot update `status` or `assignedTo`
+  if (user.role === "Tester") {
+    const restrictedFields = ["status", "assignedTo"];
+    const disallowed = Object.keys(updates).some((key) =>
+      restrictedFields.includes(key)
+    );
+    if (disallowed) {
+      return sendError(res, 403, "Testers cannot update status or assignedTo");
+    }
+
+    const updatedBug = await Bug.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+    }).populate([
+      { path: "createdBy", select: "name" },
+      { path: "assignedTo", select: "name" },
+    ]);
+    return sendSuccess(res, 200, "Bug updated successfully", updatedBug);
+  }
+
+  // 👑 Admin or Creator: full access
   if (
-    bug.createdBy.toString() !== req.user._id.toString() &&
-    req.user.role !== "Admin"
+    bug.createdBy.toString() !== user._id.toString() &&
+    user.role !== "Admin"
   ) {
     return sendError(res, 403, "Not creator or admin");
   }
 
-  const { title, description, priority, status, assignedTo } = req.body;
-  // if (assignedTo) {
-  //   const user = await User.findById(assignedTo);
-  //   if (!user) {
-  //     return res
-  //       .status(404)
-  //       .json({ success: false, message: "Assigned user not found" });
-  //   }
-  // }
-  const updates = { title, description, priority, status, assignedTo };
-  Object.keys(updates).forEach(
-    (key) => updates[key] === undefined && delete updates[key]
-  );
   const updatedBug = await Bug.findByIdAndUpdate(req.params.id, updates, {
     new: true,
   }).populate([

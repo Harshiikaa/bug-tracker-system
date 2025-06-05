@@ -5,7 +5,9 @@ export interface Bug {
   status: 'Open' | 'In Progress' | 'Closed';
   priority: 'Low' | 'Medium' | 'High';
   createdBy?: { name: string };
-  assignedTo?: { name: string };
+  assignedTo?:string | { _id: string; name: string };
+
+  // assignedTo?: { name: string };
   comments: Array<{
     text: string;
     createdBy: { name: string }; // Assuming you populate this
@@ -16,13 +18,3 @@ export interface Bug {
 }
 
 
-
-// interface Bug {
-//   _id: string;
-//   title: string;
-//   description: string;
-//   status: string;
-//   priority: string;
-//   createdBy?: { name: string };
-//   assignedTo?: { name: string };
-// }
