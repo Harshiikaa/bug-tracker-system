@@ -2,6 +2,7 @@
 const asyncHandler = require("../middlewares/asyncHandler");
 const User = require("../models/User");
 const { body, param, validationResult } = require("express-validator");
+const { sendError, sendSuccess } = require("../utils/response");
 
 // Get all users
 const getAllUsers = async (req, res) => {

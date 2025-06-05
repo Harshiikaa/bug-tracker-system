@@ -27,19 +27,26 @@ export default function RegisterPage() {
     setMessage('');
     setError('');
     setIsSubmitting(true);
-
-    try {
-      await register(formData.name, formData.email, formData.password);
-      setMessage('Registration successful! Please log in.');
-      setFormData({ name: '', email: '', password: '' });
-
-      // Optional: redirect after delay
-      setTimeout(() => router.push('/login'), 1000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
-    } finally {
-      setIsSubmitting(false);
-    }
+ register.mutate(
+      {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      },
+      {
+        onSuccess: () => {
+          setMessage('Registration successful! Please log in.');
+          setFormData({ name: '', email: '', password: '' });
+          setTimeout(() => router.push('/login'), 1000);
+        },
+        onError: (err: any) => {
+          setError(err.message || 'Registration failed');
+        },
+        onSettled: () => {
+          setIsSubmitting(false);
+        },
+      }
+    );
   };
 
   return (

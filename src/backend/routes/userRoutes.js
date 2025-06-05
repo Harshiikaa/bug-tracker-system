@@ -24,18 +24,19 @@ const asyncHandler = require("../middlewares/asyncHandler");
 
 router.get("/", protect, authorizeRoles("Admin"), asyncHandler(getAllUsers));
 router.get(
+  "/developers",
+  protect,
+  authorizeRoles("Admin"),
+  asyncHandler(getDevelopers)
+);
+router.get(
   "/:id",
   protect,
   handleValidationErrors,
   authorizeRoles("Admin"),
   asyncHandler(getUserById)
 );
-router.get(
-  "/developers",
-  protect,
-  authorizeRoles("Admin"),
-  asyncHandler(getDevelopers)
-);
+
 router.put(
   "/:id",
   protect,

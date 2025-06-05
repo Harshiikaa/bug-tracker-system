@@ -27,27 +27,32 @@ export default function LoginPage() {
     setError("");
     setIsSubmitting(true);
 
-    try {
-      await login(formData.email, formData.password);
-          // Get the user after login
-    const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-    const role = storedUser?.role;
-     // Redirect based on role
-    if (role === 'Admin') {
-      router.push('/admin');
-    } else if (role === 'Tester') {
-      router.push('/tester');
-    } else {
-      router.push('/developer'); // default for User
-    }
-      setMessage("Logged In Successfully");
-      setFormData({ email: "", password: "" });
-      // router.push("/dashboard"); // Redirect after login
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setIsSubmitting(false);
-    }
+   login.mutate(
+      { email: formData.email, password: formData.password },
+      {
+        onSuccess: (data) => {
+          const role = data.user.role;
+
+          setMessage("Logged In Successfully");
+          setFormData({ email: "", password: "" });
+
+          // Role-based redirect
+          if (role === "Admin") {
+            router.push("/admin");
+          } else if (role === "Tester") {
+            router.push("/tester");
+          } else {
+            router.push("/developer");
+          }
+        },
+        onError: (err: any) => {
+          setError(err.message || "Login failed");
+        },
+        onSettled: () => {
+          setIsSubmitting(false);
+        },
+      }
+    );
   };
 
   return (

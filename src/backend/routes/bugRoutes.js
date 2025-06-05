@@ -1,15 +1,16 @@
 // src/routes/bugRoutes.js
+
 const express = require("express");
 const router = express.Router();
 const {
-  getAllBugs,
   createBug,
+  getAllBugs,
   getBugById,
+  getBugs,
   updateBug,
   deleteBug,
   addComment,
   deleteComment,
-  getBugs,
 } = require("../controllers/bugController");
 const { protect, authorizeRoles } = require("../middlewares/authMiddleware");
 const {
@@ -34,12 +35,14 @@ router.post(
   authorizeRoles("Tester"),
   asyncHandler(createBug)
 );
+
 router.get(
   "/my-bugs",
   protect,
   authorizeRoles("Tester", "User"),
   asyncHandler(getBugs)
 ); // for testers/devs
+
 router.get(
   "/",
   protect,
@@ -48,6 +51,7 @@ router.get(
   authorizeRoles("Admin"),
   asyncHandler(getAllBugs)
 ); // only for admin
+
 router.get(
   "/:id",
   protect,
@@ -55,6 +59,7 @@ router.get(
   handleValidationErrors,
   asyncHandler(getBugById)
 );
+
 router.put(
   "/:id",
   protect,
@@ -63,6 +68,7 @@ router.put(
   authorizeRoles("Tester", "Admin"),
   asyncHandler(updateBug)
 );
+
 router.delete(
   "/:id",
   protect,
@@ -71,6 +77,7 @@ router.delete(
   authorizeRoles("Admin"),
   asyncHandler(deleteBug)
 );
+
 router.post(
   "/:id/comments",
   protect,
@@ -78,6 +85,7 @@ router.post(
   handleValidationErrors,
   asyncHandler(addComment)
 );
+
 router.delete(
   "/:id/comments/:commentId",
   protect,

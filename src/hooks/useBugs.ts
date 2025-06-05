@@ -1,248 +1,78 @@
-'use client';
+// src/hooks/useBugs.ts
+"use client";
 
-import { useCallback, useState } from 'react';
-type Bug = {
-  _id: string;
-  title: string;
-  description: string;
-  status?: string;
-  priority?: string;
-  createdBy?: { name: string };
-  assignedTo?: { name: string };
-};
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Bug,
+  createBug,
+  deleteBug,
+  getAllBugs,
+  getBugById,
+  getBugs,
+  updateBug,
+  addComment,
+  deleteComment,
+} from "@/api/bugs";
+import { useEffect, useState } from "react";
 
-type BugResponse = {
-  bugs: Bug[];
-  pagination: {
-    totalItems: number;
-    totalPages: number;
-    currentPage: number;
-    itemsPerPage: number;
-  };
-};
+export function useBugs(queryParams = "") {
+  const [token, setToken] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-type UserBugsResponse = {
-  success: boolean;
-  data: Bug[];
-  message?: string;
-};
+  useEffect(() => {
+    const storedToken = localStorage.getItem("authToken");
+    if (storedToken) setToken(storedToken);
+  }, []);
 
-const API_URL = 'http://localhost:3001/api/bugs';
+  // Queries
+  const getBugsQuery = useQuery<Bug[]>({
+    queryKey: ["my-bugs"],
+    queryFn: () => getBugs(token!),
+    enabled: !!token,
+  });
 
-export function useBugs(token: string | null) {
-    // const finalToken = token || (typeof window !== "undefined" ? localStorage.getItem("authToken") : null);
-  const [bugs, setBugs] = useState<any[]>([]);
-  const [bug, setBug] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const getAllBugsQuery = useQuery<{ bugs: Bug[] }>({
+    queryKey: ["all-bugs", queryParams], // cache by filters
+    queryFn: () => getAllBugs(token!, queryParams),
+    enabled: !!token,
+  });
 
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  };
+  // Mutations
+  const create = useMutation({
+    mutationFn: (data: Partial<Bug> & { assignedTo?: string }) =>
+      createBug(token!, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-bugs"] }),
+  });
 
-  // Create bug
-  const createBug = async (bugData: {
-    title: string;
-    description: string;
-    priority?: string;
-    status?: string;
-    assignedTo?: string;
-  }) => {
-    setLoading(true);
-    try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(bugData)
-      });
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error('Create bug error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const update = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Bug> }) =>
+      updateBug(token!, id, updates),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-bugs"] }),
+  });
 
-  // Get all bugs
-  const getAllBugs = useCallback(
-    async (queryParams = '') => {
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_URL}?${queryParams}`, { headers });
-        const data = await res.json();
-        console.log('🐞 Get all bugs response:', data); // Debug log
-        if (data.bugs) {
-          setBugs(data.bugs); // Update bugs state
-        } else {
-          setBugs([]); // Empty array if no bugs
-        }
-        return data; // Return data for external use (e.g., pagination)
-      } catch (err) {
-        console.error('Get all bugs error:', err);
-        setBugs([]); // Set empty on error
-      } finally {
-        setLoading(false);
-      }
-    },
-    [token] // Depend on token directly instead of headers
-  );
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteBug(token!, id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-bugs"] }),
+  });
 
-  const getBugById = useCallback(
-  async (id: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/${id}`, { headers });
-      const data = await res.json();
-      console.log('🐞 Get bug by ID response:', data); // Debug log
-      if (data._id) {
-        setBug(data); // Update bug state
-      } else {
-        setBug(null); // Set null if no valid bug
-      }
-      return data; // Return data for external use
-    } catch (err) {
-      console.error('Get bug by ID error:', err);
-      setBug(null); // Set null on error
-    } finally {
-      setLoading(false);
-    }
-  },
-  [token] // Depend on token directly instead of headers
-);
-  // const getBugById = async (id: string) => {
-  //   setLoading(true);
-  //   try {
-  //     const res = await fetch(`${API_URL}/${id}`, { headers });
-  //     const data = await res.json();
-  //     if (data._id) setBug(data);
-  //     return data;
-  //   } catch (err) {
-  //     console.error('Get bug by ID error:', err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const comment = useMutation({
+    mutationFn: ({ id, text }: { id: string; text: string }) =>
+      addComment(token!, id, text),
+  });
 
-  // Update bug
-  
-  
-  const getBugsForDashboard = async () => {
-const response = await fetch(`${API_URL.replace(/\/$/, '')}/dashboard`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.json();
-  };
-
-   // Get user-specific bugs (Testers: createdBy, Developers: assignedTo)
-const getBugs = useCallback(
-  async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/my-bugs`, { headers });
-      const data: UserBugsResponse = await res.json();
-      console.log('🐞 Get user bugs response:', JSON.stringify(data, null, 2));
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to fetch user bugs');
-      }
-      if (!data.success || !Array.isArray(data.data)) {
-        throw new Error('Invalid response format from server');
-      }
-      setBugs(data.data);
-      return data.data;
-    } catch (err) {
-      console.error('Get user bugs error:', err);
-      setBugs([]);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  },
-  [token]
-);
-  
-  const updateBug = async (id: string, updates: any) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/${id}`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(updates)
-      });
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error('Update bug error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Delete bug
-  const deleteBug = async (id: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/${id}`, {
-        method: 'DELETE',
-        headers
-      });
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error('Delete bug error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Add comment
-  const addComment = async (bugId: string, text: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/${bugId}/comments`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ text })
-      });
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error('Add comment error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Delete comment
-  const deleteComment = async (bugId: string, commentId: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/${bugId}/comments/${commentId}`, {
-        method: 'DELETE',
-        headers
-      });
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error('Delete comment error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const removeComment = useMutation({
+    mutationFn: ({ bugId, commentId }: { bugId: string; commentId: string }) =>
+      deleteComment(token!, bugId, commentId),
+  });
 
   return {
-  bugs,
-  loading,
-    createBug,
-    getAllBugs,
-    getBugById,
-    getBugs,
-    getBugsForDashboard,
-    updateBug,
-    deleteBug,
-    addComment,
-    deleteComment
+    token,
+    getBugsQuery,
+    getAllBugsQuery,
+    create,
+    update,
+    remove,
+    comment,
+    removeComment,
   };
 }
