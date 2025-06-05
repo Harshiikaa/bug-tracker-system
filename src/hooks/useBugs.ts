@@ -5,17 +5,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bug,
   createBug,
-  deleteBug,
   getAllBugs,
-  getBugById,
   getBugs,
   updateBug,
+  deleteBug,
   addComment,
   deleteComment,
 } from "@/api/bugs";
 import { useEffect, useState } from "react";
 
-export function useBugs(queryParams = "") {
+export function useBugs(queryParams = "", options: { role?: string } = {}) {
   const [token, setToken] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -25,16 +24,25 @@ export function useBugs(queryParams = "") {
   }, []);
 
   // Queries
+
+
+
   const getBugsQuery = useQuery<Bug[]>({
     queryKey: ["my-bugs"],
     queryFn: () => getBugs(token!),
-    enabled: !!token,
+    enabled:  !!token ,
   });
 
+//     console.log("🐛 Inside useBugs Hook");
+// console.log("🔐 token:", token);
+// console.log("🧪 role:", options.role);
+// console.log("🟢 enabled condition:", !!token && options.role === "Tester");
+
+
   const getAllBugsQuery = useQuery<{ bugs: Bug[] }>({
-    queryKey: ["all-bugs", queryParams], // cache by filters
+    queryKey: ["/", queryParams], // cache by filters
     queryFn: () => getAllBugs(token!, queryParams),
-    enabled: !!token,
+        enabled: !!token && options.role === "Admin",
   });
 
   // Mutations

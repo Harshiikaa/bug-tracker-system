@@ -12,20 +12,27 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 
 export function useAuth() {
+  // const [tokenReady, setTokenReady] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
 
   // Load token on mount
   useEffect(() => {
     const storedToken = localStorage.getItem("authToken");
     if (storedToken) {
       setToken(storedToken);
-      fetchUserProfile(storedToken);
+        // setTokenReady(true);
+
+      // fetchUserProfile(storedToken);
     }
   }, []);
 
+
+
+
   //  Profile Query (enabled only if token exists)
-  const { data: user, refetch: refetchProfile } = useQuery<User>({
+  const { data: user } = useQuery<User>({
     queryKey: ["profile"],
     queryFn: () => fetchUserProfile(token!),
     enabled: !!token,
@@ -41,6 +48,7 @@ export function useAuth() {
     mutationFn: loginUser,
     onSuccess: (data) => {
       localStorage.setItem("authToken", data.token);
+       localStorage.setItem("user", JSON.stringify(data.user));
       setToken(data.token);
       queryClient.setQueryData(["profile"], data.user); // Optimistic update
     },
