@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
+import Button from "@/components/Button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function LoginPage() {
     setError("");
     setIsSubmitting(true);
 
-   login.mutate(
+    login.mutate(
       { email: formData.email, password: formData.password },
       {
         onSuccess: (data) => {
@@ -94,7 +95,9 @@ export default function LoginPage() {
               className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <button
+          <Button label="Login" color="blue" type="submit" isSubmitting={isSubmitting} />
+
+          {/* <button
             type="submit"
             disabled={isSubmitting}
             className={`w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -102,7 +105,7 @@ export default function LoginPage() {
             }`}
           >
             {isSubmitting ? "Logging In..." : "Login"}
-          </button>
+          </button> */}
         </form>
         {message && (
           <p className="mt-4 text-green-600 text-center">{message}</p>

@@ -10,8 +10,8 @@ export interface Bug {
   // assignedTo?: { name: string };
   comments: Array<{
     text: string;
-    createdBy: { name: string }; // Assuming you populate this
-    createdAt: string; // Use string for JSON-serialized Date
+    createdBy: { name: string }; 
+    createdAt: string; 
   }>;
   createdAt: string;
   updatedAt: string;
