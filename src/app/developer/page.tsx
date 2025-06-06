@@ -1,11 +1,13 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import ProtectedAuth from '@/components/ProtectedAuth';
-import { useAuth } from '@/hooks/useAuth';
-import { useBugs } from '@/hooks/useBugs';
-import { Bug } from '@/types/Bug';
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import ProtectedAuth from "@/components/ProtectedAuth";
+import { useAuth } from "@/hooks/useAuth";
+import { useBugs } from "@/hooks/useBugs";
+import { Bug } from "@/types/Bug";
+import Badge from "@/components/Badge";
+import Select from "@/components/Select";
 
 export default function DeveloperDashboard() {
   const { user } = useAuth();
@@ -26,7 +28,7 @@ export default function DeveloperDashboard() {
       const found = bugs.find((b) => b._id === bugId);
       if (found) setSelectedBug(found);
       else {
-        setError('Bug not found.');
+        setError("Bug not found.");
         setSelectedBug(null);
       }
     } else {
@@ -35,13 +37,16 @@ export default function DeveloperDashboard() {
     }
   }, [bugId, bugs]);
 
-  const handleStatusChange = async (bugId: string, newStatus: Bug['status']) => {
+  const handleStatusChange = async (
+    bugId: string,
+    newStatus: Bug["status"]
+  ) => {
     try {
       await update.mutateAsync({ id: bugId, updates: { status: newStatus } });
       setStatusDropdown(null);
     } catch (err: any) {
-      console.error('Failed to update status:', err);
-      alert(err.response?.data?.message || 'Failed to update status');
+      console.error("Failed to update status:", err);
+      alert(err.response?.data?.message || "Failed to update status");
     }
   };
 
@@ -70,44 +75,54 @@ export default function DeveloperDashboard() {
             </td>
             <td className="p-4 text-gray-600">{b.description}</td>
             <td className="p-4 relative">
-              <span
+              {/* <td className="p-4"> */}
+                <Select
+                  name="status"
+                  value={b.status}
+                  onChange={(val) => handleStatusChange(b._id, val)}
+                />
+              {/* </td> */}
+
+              {/* <span
                 onClick={() =>
                   setStatusDropdown((prev) => (prev === b._id ? null : b._id))
                 }
-                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full cursor-pointer ${{
-                  Open: 'bg-blue-100 text-blue-700',
-                  'In Progress': 'bg-yellow-100 text-yellow-700',
-                  Closed: 'bg-green-100 text-green-700',
-                }[b.status]}`}
+                className="cursor-pointer w-fit"
               >
-                {b.status}
+                <Badge value={b.status} type="status" />
               </span>
               {statusDropdown === b._id && (
                 <div className="absolute z-10 mt-2 bg-white border rounded shadow-md">
-                  {['Open', 'In Progress', 'Closed'].map((status) => (
+                  {["Open", "In Progress", "Closed"].map((status) => (
                     <button
                       key={status}
                       className="block w-full px-4 py-2 text-sm text-left hover:bg-gray-100"
-                      onClick={() => handleStatusChange(b._id, status as Bug['status'])}
+                      onClick={() =>
+                        handleStatusChange(b._id, status as Bug["status"])
+                      }
                     >
                       {status}
                     </button>
                   ))}
                 </div>
-              )}
+              )} */}
             </td>
             <td className="p-4">
               <span
-                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${{
-                  High: 'bg-red-100 text-red-700',
-                  Medium: 'bg-orange-100 text-orange-700',
-                  Low: 'bg-gray-100 text-gray-700',
-                }[b.priority]}`}
+                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                  {
+                    High: "bg-red-100 text-red-700",
+                    Medium: "bg-orange-100 text-orange-700",
+                    Low: "bg-gray-100 text-gray-700",
+                  }[b.priority]
+                }`}
               >
                 {b.priority}
               </span>
             </td>
-            <td className="p-4 text-gray-600">{b.createdBy?.name || 'Unknown'}</td>
+            <td className="p-4 text-gray-600">
+              {b.createdBy?.name || "Unknown"}
+            </td>
           </tr>
         ))}
       </tbody>
@@ -115,7 +130,7 @@ export default function DeveloperDashboard() {
   );
 
   return (
-    <ProtectedAuth allowedRoles={['User']}>
+    <ProtectedAuth allowedRoles={["User"]}>
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
         <h1 className="text-3xl font-bold text-green-700 mb-4">
           Welcome to Developer Dashboard 💪
@@ -126,7 +141,7 @@ export default function DeveloperDashboard() {
 
         {bugId && (
           <button
-            onClick={() => router.push('/developer-dashboard')}
+            onClick={() => router.push("/developer-dashboard")}
             className="mb-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
           >
             Back to All Bugs

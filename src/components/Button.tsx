@@ -4,7 +4,9 @@ import React from "react";
 
 interface ButtonProps {
   label: string;                     
-  onClick?: () => void;              
+  // onClick?: () => void;       
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+       
   color?: "blue" | "red" | "green";  
   type?: "button" | "submit";        
   isSubmitting?: boolean;          

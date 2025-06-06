@@ -134,7 +134,6 @@ export default function AdminDashboard() {
     setShowDropdown((prev) => (prev === bugId ? null : bugId));
   };
 
-  
   return (
     <ProtectedAuth allowedRoles={["Admin"]}>
       <div className="min-h-screen p-6 bg-gray-100">
@@ -154,89 +153,37 @@ export default function AdminDashboard() {
             </h2>
           )}
           <Input
-  name="title"
-  value={formData.title || ""}
-  onChange={handleChange}
-  placeholder="Enter Bug Title"
-  required
-/>
-          {/* <input
-            type="text"
             name="title"
-            placeholder="Title"
             value={formData.title || ""}
             onChange={handleChange}
+            placeholder="Enter Bug Title"
             required
-            className="w-full p-2 border rounded"
-          /> */}
-
+          />
           <TextArea
-  name="description"
-  value={formData.description || ""}
-  onChange={handleChange}
-  placeholder="Description"
-  required
-/>
-          {/* <textarea
             name="description"
-            placeholder="Description"
             value={formData.description || ""}
             onChange={handleChange}
+            placeholder="Description"
             required
-            className="w-full p-2 border rounded"
-          /> */}
-<Select
-  name="priority"
-  value={formData.priority || "Medium"}
-  onChange={(val) =>
-    setFormData((prev) => ({ ...prev, priority: val }))
-  }
-/>
+          />
 
-          {/* <select
+          <Select
             name="priority"
             value={formData.priority || "Medium"}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-          >
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-          </select> */}
-          <Select
-  name="status"
-  value={formData.status || "Open"}
-  onChange={(val) =>
-    setFormData((prev) => ({ ...prev, status: val }))
-  }
-/>
+            onChange={(val) =>
+              setFormData((prev) => ({ ...prev, priority: val }))
+            }
+          />
 
-          {/* <select
+          <Select
             name="status"
             value={formData.status || "Open"}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-          >
-            <option value="Open">Open</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Closed">Closed</option>
-          </select> */}
-<SelectDynamic
-  name="assignedTo"
-  value={
-    typeof formData.assignedTo === "object"
-      ? formData.assignedTo._id
-      : formData.assignedTo || ""
-  }
-  onChange={handleChange}
-  options={developers.map((dev) => ({
-    value: dev._id,
-    label: dev.name,
-  }))}
-  includeEmptyOption
-/>
+            onChange={(val) =>
+              setFormData((prev) => ({ ...prev, status: val }))
+            }
+          />
 
-          {/* <select
+          <SelectDynamic
             name="assignedTo"
             value={
               typeof formData.assignedTo === "object"
@@ -244,15 +191,12 @@ export default function AdminDashboard() {
                 : formData.assignedTo || ""
             }
             onChange={handleChange}
-            className="w-full p-2 border rounded"
-          >
-            <option value="">Unassigned</option>
-            {developers.map((dev) => (
-              <option key={dev._id} value={dev._id}>
-                {dev.name}
-              </option>
-            ))}
-          </select> */}
+            options={developers.map((dev) => ({
+              value: dev._id,
+              label: dev.name,
+            }))}
+            includeEmptyOption
+          />
 
           <div className="flex gap-4">
             <Button
@@ -260,12 +204,7 @@ export default function AdminDashboard() {
               type="submit"
               color="blue"
             />
-            {/* <button
-              type="submit"
-              className="flex-1 py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              {editingBugId ? "Update Bug" : "Update"}
-            </button> */}
+
             {editingBugId && (
               <button
                 type="button"
@@ -313,34 +252,9 @@ export default function AdminDashboard() {
                   <td className="p-4 font-medium text-gray-800">{bug.title}</td>
                   <td className="p-4">
                     <Badge value={bug.status} type="status" />
-
-                    {/* <span
-                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        bug.status === "Open"
-                          ? "bg-blue-100 text-blue-700"
-                          : bug.status === "In Progress"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-green-100 text-green-700"
-                      }`}
-                    >
-                      {bug.status}
-                    </span> */}
                   </td>
                   <td className="p-4">
                     <Badge value={bug.priority} type="priority" />
-
-
-                    {/* <span
-                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        bug.priority === "High"
-                          ? "bg-red-100 text-red-700"
-                          : bug.priority === "Medium"
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {bug.priority}
-                    </span> */}
                   </td>
                   <td className="p-4 text-gray-600">
                     {bug.createdBy?.name || "Unknown"}
@@ -382,13 +296,6 @@ export default function AdminDashboard() {
                       onClick={() => handleEdit(bug)}
                       color="green"
                     />
-
-                    {/* <button
-                      onClick={() => handleEdit(bug)}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Edit
-                    </button> */}
                   </td>
                 </tr>
               ))}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
+import Input from "@/components/Input";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
+        <h2 className="text-2xl font-bold mb-4 text-center text-blue-700">Login</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label
@@ -68,7 +69,16 @@ export default function LoginPage() {
             >
               Email
             </label>
-            <input
+            <Input
+  type="email"
+  name="email"
+  value={formData.email}
+  onChange={handleChange}
+  required
+  placeholder="Enter your email"
+/>
+
+            {/* <input
               type="email"
               id="email"
               name="email"
@@ -76,7 +86,7 @@ export default function LoginPage() {
               onChange={handleChange}
               required
               className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            /> */}
           </div>
           <div>
             <label
@@ -85,15 +95,14 @@ export default function LoginPage() {
             >
               Password
             </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="mt-1 w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+                   <Input
+  type="password"
+  name="password"
+  value={formData.password}
+  onChange={handleChange}
+  required
+  placeholder="Enter your password"
+/>
           </div>
           <Button label="Login" color="blue" type="submit" isSubmitting={isSubmitting} />
 

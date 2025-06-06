@@ -38,7 +38,7 @@ export default function Select<T extends Priority | Status>({
       value === "High"
         ? "text-red-700"
         : value === "Medium"
-        ? "text-orange-700"
+        ? "text-yellow-700"
         : "text-gray-700"; 
   }
 

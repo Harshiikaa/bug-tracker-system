@@ -16,7 +16,7 @@ const Badge: React.FC<BadgeProps> = ({ value, type }) => {
         ? "bg-blue-100 text-blue-700"
         : value === "In Progress"
         ? "bg-yellow-100 text-yellow-700"
-        : "bg-green-100 text-green-700"; // e.g., "Resolved"
+        : "bg-green-100 text-green-700"; 
   } else if (type === "priority") {
     className =
       value === "High"
